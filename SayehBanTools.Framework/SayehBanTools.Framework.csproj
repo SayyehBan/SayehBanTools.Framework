@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<RootNamespace>SayehBanTools.Framework</RootNamespace>
+		<AssemblyName>SayehBanTools.Framework</AssemblyName>
+
+		<!-- غیرفعال کردن تولید خودکار AssemblyInfo جهت جلوگیری از خطای Duplicate -->
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+		<!-- تنظیمات مربوط به ساخت پکیج NuGet -->
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<PackageId>SayehBanTools.Framework</PackageId>
+		<Version>1.0.0</Version>
+
+		<Authors>SayyehBan</Authors>
+		<Company>SayyehBan</Company>
+		<Title>سورس کمکی فریم ورک سایه بان</Title>
+		<Description>مجموعه‌ابزارها و کتابخانه‌های کاربردی برای .NET Framework 4.8</Description>
+		<PackageTags>Framework;Tools;SayehBan</PackageTags>
+		<Product>SayyehBan.ir</Product>
+		<Copyright>SayyehBan.ir</Copyright>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Dapper" Version="2.1.89" />
+	  <PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.5.2" />
+	  <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.13" />
+	  <PackageReference Include="Microsoft.Extensions.Features" Version="10.0.12" />
+	  <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
+	  <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.12" />
+	  <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+	  <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+	  <PackageReference Include="OllamaSharp" Version="5.4.30" />
+	  <PackageReference Include="RabbitMQ.Client" Version="7.2.2" />
+	  <PackageReference Include="RestSharp" Version="114.0.0" />
+	  <PackageReference Include="StackExchange.Redis" Version="3.3.1" />
+	  <PackageReference Include="System.IO.Abstractions" Version="22.2.0" />
+	</ItemGroup>
+
+</Project>
