@@ -1,4 +1,9 @@
-﻿namespace SayehBanTools.Framework.NetworkUtilities
+﻿using Newtonsoft.Json;
+using SayehBanTools.Framework.Model.Entities;
+using System.Net;
+using static SayehBanTools.Framework.Model.Entities.PublicModel;
+
+namespace SayehBanTools.Framework.NetworkUtilities
 {
     /// <summary>
     /// بررسی شبکه
@@ -41,6 +46,43 @@
             catch
             {
                 return false;
+            }
+        }
+        /// <summary>
+        /// دریافت آدرس IP محلی سیستم
+        /// </summary>
+        public static string GetLocalIPAddress()
+        {
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList)
+            {
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                {
+                    return ip.ToString();
+                }
+            }
+            return "127.0.0.1";
+        }
+        /// <summary>
+        /// دریافت IP عمومی (با متد جایگزین، چون وای‌فای ممکن است مشکل‌ساز باشد)
+        /// </summary>
+        public static string GetPublicIPAddress()
+        {
+            try
+            {
+                using (var client = new WebClient())
+                {
+                    string json = client.DownloadString("https://ipwho.is/");
+
+                    // Deserialize کامل JSON
+                    var ipData = JsonConvert.DeserializeObject<IpResponse>(json);
+
+                    return ipData?.ip ?? "127.0.0.1";
+                }
+            }
+            catch
+            {
+                return "127.0.0.1";
             }
         }
     }

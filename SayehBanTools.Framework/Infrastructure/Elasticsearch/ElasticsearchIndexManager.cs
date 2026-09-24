@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+// برای جلوگیری از تداخل نام Properties با نام‌فضای پروژه
+using ElasticProperties = Elastic.Clients.Elasticsearch.Mapping.Properties;
+
 namespace SayehBanTools.Framework.Infrastructure.Elasticsearch
 {
     /// <summary>
@@ -14,32 +17,20 @@ namespace SayehBanTools.Framework.Infrastructure.Elasticsearch
     {
         private readonly ElasticsearchClient _elasticClient;
 
-        /// <summary>
-        /// سازنده کلاس با تزریق کلاینت Elasticsearch
-        /// </summary>
-        /// <param name="elasticClient">کلاینت Elasticsearch</param>
         public ElasticsearchIndexManager(ElasticsearchClient elasticClient)
         {
             _elasticClient = elasticClient ?? throw new ArgumentNullException(nameof(elasticClient));
         }
 
-        /// <summary>
-        /// مقداردهی اولیه ایندکس‌های Elasticsearch به‌صورت داینامیک با پشتیبانی از کدهای زبان
-        /// </summary>
-        /// <param name="indexNamePrefix">پیشوند نام ایندکس</param>
-        /// <param name="propertyMappings">دیکشنری پراپرتی‌ها و نوع داده‌هایشان</param>
-        /// <param name="languageCodes">لیست کدهای زبان</param>
-        /// <returns></returns>
         public async Task InitializelanguageIndicesAsync(
             string indexNamePrefix,
             Dictionary<string, string> propertyMappings,
             params string[] languageCodes)
         {
-            // تبدیل کدها به حروف کوچک برای یکپارچگی
             var allowedLanguages = languageCodes.Select(l => l.ToLower()).ToHashSet();
 
-            // تعریف داینامیک پراپرتی‌ها
-            var properties = new Properties();
+            // استفاده از تایپ جاگزین ElasticProperties
+            var properties = new ElasticProperties();
             foreach (var prop in propertyMappings)
             {
                 switch (prop.Value.ToLower())
@@ -61,7 +52,6 @@ namespace SayehBanTools.Framework.Infrastructure.Elasticsearch
                 }
             }
 
-            // ایجاد ایندکس‌ها برای هر زبان
             foreach (var lang in allowedLanguages)
             {
                 var indexName = $"{indexNamePrefix}_{lang}";
@@ -89,18 +79,11 @@ namespace SayehBanTools.Framework.Infrastructure.Elasticsearch
             }
         }
 
-        /// <summary>
-        /// مقداردهی اولیه یک ایندکس Elasticsearch به‌صورت داینامیک بدون کد زبان
-        /// </summary>
-        /// <param name="indexName">نام ایندکس</param>
-        /// <param name="propertyMappings">دیکشنری پراپرتی‌ها و نوع داده‌هایشان</param>
-        /// <returns></returns>
         public async Task InitializeIndexAsync(
             string indexName,
             Dictionary<string, string> propertyMappings)
         {
-            // تعریف داینامیک پراپرتی‌ها
-            var properties = new Properties();
+            var properties = new ElasticProperties();
             foreach (var prop in propertyMappings)
             {
                 switch (prop.Value.ToLower())
@@ -122,7 +105,6 @@ namespace SayehBanTools.Framework.Infrastructure.Elasticsearch
                 }
             }
 
-            // بررسی وجود ایندکس
             var existsResponse = await _elasticClient.Indices.ExistsAsync(indexName);
 
             if (!existsResponse.Exists)
@@ -146,8 +128,7 @@ namespace SayehBanTools.Framework.Infrastructure.Elasticsearch
             }
         }
     }
-
-
+}
     /*
      نحوه استفاده
     var elasticClient = new ElasticsearchClient( تنظیمات );
@@ -188,4 +169,3 @@ namespace SayehBanTools.Framework.Infrastructure.Elasticsearch
             );
         }
      */
-}

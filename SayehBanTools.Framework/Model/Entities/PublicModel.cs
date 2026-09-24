@@ -54,7 +54,7 @@ namespace SayehBanTools.Framework.Model.Entities
             /// ردیابی تغییرات
             /// </summary>
             [Timestamp]
-            public byte[] RowVersion { get; set; } 
+            public byte[] RowVersion { get; set; }
         }
         /// <summary>
         /// این کلاس برای عملیات ثبت و ویرایش استفاده می‌شود
@@ -115,5 +115,24 @@ namespace SayehBanTools.Framework.Model.Entities
             [PositiveNumberIdArrayAttribute(ErrorMessage = "شناسه ها نمی‌تواند خالی، صفر یا منفی باشد.")]
             public int[] ids { get; set; } = new int[0];
         }
+        /// <summary>
+        /// دریافت IP از شبکه
+        /// </summary>
+        public class IpResponse
+        {
+            public string ip { get; set; }
+        }
+        public class SaveIP
+        {
+            /// <summary>
+            /// دریافت IPداخلی 
+            /// </summary>
+            public string Local_IP { get; set; }
+            /// <summary>
+            /// دریافت IP عمومی
+            /// </summary>
+            public string Public_IP { get; set; }
+        }
+
     }
 }
