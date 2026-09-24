@@ -5,14 +5,20 @@
 		<RootNamespace>SayehBanTools.Framework</RootNamespace>
 		<AssemblyName>SayehBanTools.Framework</AssemblyName>
 
-		<!-- غیرفعال کردن تولید خودکار AssemblyInfo جهت جلوگیری از خطای Duplicate -->
-		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<!-- مدیریت AssemblyInfo توسط SDK جهت فعال‌سازی Pack -->
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+		<!-- عدم تولید اتریبیوت‌های تکراری که در فایل AssemblyInfo.cs دستی شما وجود دارند -->
+		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+		<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+		<GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+		<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+		<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
 
-		<!-- تنظیمات مربوط به ساخت پکیج NuGet -->
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<!-- تنظیمات ساخت پکیج NuGet -->
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<IsPackable>true</IsPackable>
 		<PackageId>SayehBanTools.Framework</PackageId>
-		<Version>1.0.0</Version>
-
+		<Version>1.0.1</Version>
 		<Authors>SayyehBan</Authors>
 		<Company>SayyehBan</Company>
 		<Title>سورس کمکی فریم ورک سایه بان</Title>
@@ -20,22 +26,33 @@
 		<PackageTags>Framework;Tools;SayehBan</PackageTags>
 		<Product>SayyehBan.ir</Product>
 		<Copyright>SayyehBan.ir</Copyright>
+		<PackageIcon>SayyehBan.png</PackageIcon>
+		<RepositoryUrl>https://github.com/SayyehBan/SayehBanTools.Framework</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageProjectUrl>https://www.nuget.org/packages/SayehBanTools.Framework</PackageProjectUrl>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="Dapper" Version="2.1.89" />
-	  <PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.5.2" />
-	  <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.13" />
-	  <PackageReference Include="Microsoft.Extensions.Features" Version="10.0.12" />
-	  <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
-	  <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.12" />
-	  <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-	  <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-	  <PackageReference Include="OllamaSharp" Version="5.4.30" />
-	  <PackageReference Include="RabbitMQ.Client" Version="7.2.2" />
-	  <PackageReference Include="RestSharp" Version="114.0.0" />
-	  <PackageReference Include="StackExchange.Redis" Version="3.3.1" />
-	  <PackageReference Include="System.IO.Abstractions" Version="22.2.0" />
+		<!-- تضمین وجود تصویر آیکون هنگام ساخت پکیج -->
+		<None Include="..\..\..\..\SayyehBan.png" Link="SayyehBan.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Dapper" Version="2.1.89" />
+		<PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.5.2" />
+		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.13" />
+		<PackageReference Include="Microsoft.Extensions.Features" Version="10.0.12" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.12" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+		<PackageReference Include="OllamaSharp" Version="5.4.30" />
+		<PackageReference Include="RabbitMQ.Client" Version="7.2.2" />
+		<PackageReference Include="RestSharp" Version="114.0.0" />
+		<PackageReference Include="StackExchange.Redis" Version="3.3.1" />
+		<PackageReference Include="System.IO.Abstractions" Version="22.2.0" />
 	</ItemGroup>
 
 </Project>
