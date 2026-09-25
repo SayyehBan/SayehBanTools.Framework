@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
-using SayehBanTools.Framework.Model.Entities;
 using System.Net;
+using System.Net.NetworkInformation;
 using static SayehBanTools.Framework.Model.Entities.PublicModel;
 
 namespace SayehBanTools.Framework.NetworkUtilities
@@ -18,10 +18,10 @@ namespace SayehBanTools.Framework.NetworkUtilities
         {
             try
             {
-                using (var ping = new System.Net.NetworkInformation.Ping())
+                using (var ping = new Ping())
                 {
                     var result = ping.Send(hostToPing);
-                    return result.Status == System.Net.NetworkInformation.IPStatus.Success;
+                    return result.Status == IPStatus.Success;
                 }
             }
             catch
@@ -37,10 +37,10 @@ namespace SayehBanTools.Framework.NetworkUtilities
         {
             try
             {
-                using (var ping = new System.Net.NetworkInformation.Ping())
+                using (var ping = new Ping())
                 {
                     var result = ping.Send("www.google.com");
-                    return result.Status == System.Net.NetworkInformation.IPStatus.Success;
+                    return result.Status == IPStatus.Success;
                 }
             }
             catch
