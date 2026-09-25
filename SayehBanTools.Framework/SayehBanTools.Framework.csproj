@@ -18,7 +18,7 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<IsPackable>true</IsPackable>
 		<PackageId>SayehBanTools.Framework</PackageId>
-		<Version>1.0.6</Version>
+		<Version>1.0.9</Version>
 		<Authors>SayyehBan</Authors>
 		<Company>SayyehBan</Company>
 		<Title>سورس کمکی فریم ورک سایه بان</Title>

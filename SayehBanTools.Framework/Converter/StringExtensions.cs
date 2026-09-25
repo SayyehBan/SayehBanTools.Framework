@@ -600,6 +600,20 @@ namespace SayehBanTools.Framework.Converter
 
             return text.Trim();
         }
+        /// <summary>
+        /// تمیزسازی مقادیر سلول‌ها جهت جلوگیری از به‌هم‌ریختگی فرمت فایل
+        /// </summary>
+        public static string CleanValue(this string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return string.Empty;
+
+            // حذف Tab، Enter و کاراکترهای کنترل که ساختار فایل TSV را خراب می‌کنند
+            return value.Replace("\t", " ")
+                        .Replace("\r\n", " ")
+                        .Replace("\r", " ")
+                        .Replace("\n", " ");
+        }
     }
 
 
