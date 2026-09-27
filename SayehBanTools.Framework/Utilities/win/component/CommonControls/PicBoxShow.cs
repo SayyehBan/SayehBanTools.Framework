@@ -1,42 +1,104 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 
 namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 {
-    public class PicBoxShow:PictureBox
-    {      // یک پراپرتی برای نگهداری مسیر فایل تصویر اضافه کردیم
-        public string ImagePath { get; private set; }
+    public class PicBoxShow : PictureBox
+    {
+        // نگهداری بایت‌های اصلی تصویر برای باز کردن فایل موقت
+        public byte[] RawImageBytes { get; private set; }
+
+        // نگهداری مسیر فایل (در صورتی که فایل از سیستم بارگذاری شده باشد)
+        public string ImagePath { get; set; }
 
         public PicBoxShow()
         {
-            // تنظیمات پیش‌فرض کنترل
-            this.SizeMode = PictureBoxSizeMode.StretchImage;
+            // تنظیمات ظاهری پیش‌فرض
+            this.SizeMode = PictureBoxSizeMode.Zoom; // Zoom تصویر را متناسب نگه می‌دارد و دفرم نمی‌کند
             this.BorderStyle = BorderStyle.Fixed3D;
+            this.Cursor = Cursors.Hand; // تغییر نشانگر ماوس برای راهنمایی کاربر
         }
 
-        // با یک بار کلیک، اگر تصویری وجود داشته باشد باز می‌شود
-        protected override void OnClick(EventArgs e)
+        /// <summary>
+        /// مقداردهی و نمایش تصویر مستقیم از آرایه بایتی دیتابیس
+        /// </summary>
+        public void SetImageFromBytes(byte[] imageBytes)
         {
-            base.OnClick(e);
+            this.RawImageBytes = imageBytes;
 
-            // بررسی می‌کنیم که هم تصویر وجود داشته باشد و هم مسیر فایل معتبر باشد
-            if (this.Image != null && !string.IsNullOrEmpty(ImagePath) && File.Exists(ImagePath))
+            if (imageBytes != null && imageBytes.Length > 0)
             {
                 try
                 {
-                    // باز کردن تصویر در نمایشگر پیش‌فرض ویندوز
-                    Process.Start(new ProcessStartInfo
+                    using (MemoryStream ms = new MemoryStream(imageBytes))
                     {
-                        FileName = ImagePath,
-                        UseShellExecute = true // این گزینه برای .NET Core و نسخه‌های جدیدتر الزامی است
-                    });
+                        if (this.Image != null)
+                        {
+                            this.Image.Dispose();
+                        }
+                        this.Image = Image.FromStream(ms);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("خطا در نمایش تصویر:\n" + ex.Message, "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Debug.WriteLine("خطا در بارگذاری تصویر: " + ex.Message);
+                    this.Image = null;
                 }
+            }
+            else
+            {
+                if (this.Image != null)
+                {
+                    this.Image.Dispose();
+                }
+                this.Image = null;
+            }
+        }
+
+        // اکشن با دبل‌کلیک روی تصویر
+        protected override void OnDoubleClick(EventArgs e)
+        {
+            base.OnDoubleClick(e);
+
+            if (this.Image == null) return;
+
+            try
+            {
+                string targetPath = this.ImagePath;
+
+                // اگر تصویر از دیتابیس آمده و مسیر فایل فیزیکی ندارد، یک فایل موقت ساخت می‌شود
+                if (string.IsNullOrEmpty(targetPath) || !File.Exists(targetPath))
+                {
+                    if (this.RawImageBytes != null && this.RawImageBytes.Length > 0)
+                    {
+                        string tempFolder = Path.Combine(Path.GetTempPath(), "SayehBanTools_TempImages");
+                        if (!Directory.Exists(tempFolder))
+                        {
+                            Directory.CreateDirectory(tempFolder);
+                        }
+
+                        // ساخت یک نام یکتا برای فایل موقت
+                        targetPath = Path.Combine(tempFolder, $"Img_{Guid.NewGuid():N}.png");
+                        File.WriteAllBytes(targetPath, this.RawImageBytes);
+                    }
+                }
+
+                // اگر مسیر معتبری برای تصویر وجود دارد، آن را در نمایشگر ویندوز باز کن
+                if (!string.IsNullOrEmpty(targetPath) && File.Exists(targetPath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = targetPath,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("خطا در نمایش بزرگتر تصویر:\n" + ex.Message, "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
