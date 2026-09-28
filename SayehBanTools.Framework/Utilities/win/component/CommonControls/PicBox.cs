@@ -88,7 +88,11 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 
             using (OpenFileDialog dialog = new OpenFileDialog())
             {
-                dialog.Filter = "تمام تصاویر|*.BMP;*.DIB;*.RLE;*.JPG;*.JPEG;*.JPE;*.JFIF;*.GIF;*.TIF;*.TIFF;*.PNG|BMP فایل: (*.BMP;*.DIB;*.RLE)|*.BMP;*.DIB;*.RLE|JPEG فایل: (*.JPG;*.JPEG;*.JPE;*.JFIF)|*.JPG;*.JPEG;*.JPE;*.JFIF|GIF فایل: (*.GIF)|*.GIF|TIFF فایل: (*.TIF;*.TIFF)|*.TIF;*.TIFF|PNG فایل: (*.PNG)|*.PNG|تمام فایل ها|*.*";
+                dialog.Filter = "تصاویر پشتیبانی شده|*.JPG;*.JPEG;*.JPE;*.JFIF;*.PNG;*.BMP;*.DIB;*.RLE;*.TIF;*.TIFF" +
+                 "|فایل‌های JPEG|*.JPG;*.JPEG;*.JPE;*.JFIF" +
+                 "|فایل‌های PNG|*.PNG" +
+                 "|فایل‌های BMP|*.BMP;*.DIB;*.RLE" +
+                 "|فایل‌های TIFF|*.TIF;*.TIFF";
                 dialog.Title = "انتخاب تصویر جدید";
 
                 if (dialog.ShowDialog() == DialogResult.OK)

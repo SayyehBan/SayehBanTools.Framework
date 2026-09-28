@@ -14,8 +14,6 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
         /// <summary>
         /// تنظیم لوگوی برنامه روی فرم جاری به‌صورت پویا از طریق آرایه بایتی
         /// </summary>
-        /// <param name="form">فرمی که متد روی آن فراخوانی می‌شود</param>
-        /// <param name="imageBytes">آرایه بایتی تصویر آیکون/لوگو</param>
         public static void SetAppIcon(this Form form, byte[] imageBytes)
         {
             if (form == null || imageBytes == null || imageBytes.Length == 0) return;
@@ -37,7 +35,6 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
                             }
                         }
 
-                        // آزادسازی Handle از حافظه ویندوز
                         if (hIcon != IntPtr.Zero)
                         {
                             DestroyIcon(hIcon);
@@ -54,9 +51,6 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
         /// <summary>
         /// تنظیم عنوان فرم به‌صورت پویا و ترکیب با عنوان پیش‌فرض
         /// </summary>
-        /// <param name="form">فرمی که متد روی آن فراخوانی می‌شود</param>
-        /// <param name="dynamicTitle">عنوان پویا (مثلاً نام فروشگاه یا اسم کاربر)</param>
-        /// <param name="defaultTitle">عنوان اصلی فرم یا نرم‌افزار</param>
         public static void SetAppTitle(this Form form, string dynamicTitle, string defaultTitle = "سیستم مدیریت فروش")
         {
             if (form == null) return;
@@ -72,7 +66,7 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
         }
 
         /// <summary>
-        ///دکمه خروج
+        /// دکمه خروج کامل از نرم‌افزار (بستن تمام کل برنامه)
         /// </summary>
         public static void ExitApp()
         {
@@ -80,17 +74,19 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
                 "آیا مایل به خروج از برنامه هستید؟",
                 "خروج",
                 MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button2,
+                MessageBoxOptions.RtlReading);
 
             if (dr == DialogResult.Yes)
             {
                 Application.Exit();
             }
         }
+
         /// <summary>
-        /// دکمه خروج برای دکمه ضربدر
+        /// تأیید خروج کامل از نرم‌افزار (مناسب جهت استفاده در FormClosing فرم اصلی)
         /// </summary>
-        /// <returns></returns>
         public static bool ConfirmExit()
         {
             DialogResult dr = MessageBox.Show(
@@ -98,8 +94,46 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
                 "خروج",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question,
-                MessageBoxDefaultButton.Button2, // فوکوس پیش‌فرض روی No برای جلوگیری از خروج اشتباهی
-                MessageBoxOptions.RtlReading);  // جهت راست‌به‌چپ برای متن فارسی
+                MessageBoxDefaultButton.Button2,
+                MessageBoxOptions.RtlReading);
+
+            return dr == DialogResult.Yes;
+        }
+
+        /// <summary>
+        /// بستن فرم جاری به صورت Extension Method
+        /// </summary>
+        /// <param name="form">فرمی که قرار است بسته شود</param>
+        public static void CloseApp(this Form form)
+        {
+            if (form == null) return;
+
+            DialogResult dr = MessageBox.Show(
+                "آیا مایل به بستن این فرم هستید؟",
+                "بستن فرم",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button2,
+                MessageBoxOptions.RtlReading);
+
+            if (dr == DialogResult.Yes)
+            {
+                form.Close(); // استفاده از پارامتر form به جای this
+            }
+        }
+
+        /// <summary>
+        /// تأیید بستن فرم جاری (مناسب جهت استفاده در FormClosing فرم‌های زیرمجموعه)
+        /// </summary>
+        public static bool ConfirmClose()
+        {
+            DialogResult dr = MessageBox.Show(
+                "آیا مایل به بستن این فرم هستید؟",
+                "بستن فرم",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button2,
+                MessageBoxOptions.RtlReading);
 
             return dr == DialogResult.Yes;
         }

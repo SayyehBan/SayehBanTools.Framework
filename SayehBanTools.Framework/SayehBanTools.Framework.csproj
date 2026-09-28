@@ -18,7 +18,7 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<IsPackable>true</IsPackable>
 		<PackageId>SayehBanTools.Framework</PackageId>
-		<Version>1.1.3</Version>
+		<Version>1.1.5</Version>
 		<Authors>SayyehBan</Authors>
 		<Company>SayyehBan</Company>
 		<Title>سورس کمکی فریم ورک سایه بان</Title>
@@ -52,7 +52,7 @@
 		<PackageReference Include="RabbitMQ.Client" Version="7.2.2" />
 		<PackageReference Include="RestSharp" Version="114.0.0" />
 		<PackageReference Include="StackExchange.Redis" Version="3.3.1" />
-		<PackageReference Include="System.IO.Abstractions" Version="22.2.0" />
+		<PackageReference Include="System.IO.Abstractions" Version="22.3.0" />
 		<PackageReference Include="System.Reactive.Windows.Forms" Version="7.0.0" />
 	</ItemGroup>
 
