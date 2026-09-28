@@ -226,14 +226,18 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 
                 if (!IsValidDate(year, month, day))
                 {
-                    MessageBox.Show("تاریخ وارد شده معتبر نیست!", "خطا در ورود تاریخ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("تاریخ وارد شده معتبر نیست!", "خطا در ورود تاریخ", MessageBoxButtons.OK, MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button1,
+                    MessageBoxOptions.RtlReading);
                     this.Focus();
                     this.SelectAll();
                 }
             }
             else
             {
-                MessageBox.Show("لطفاً تاریخ را به صورت ۸ رقمی وارد کنید (مثال: 14030101).", "تاریخ ناقص", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("لطفاً تاریخ را به صورت ۸ رقمی وارد کنید (مثال: 14030101).", "تاریخ ناقص", MessageBoxButtons.OK, MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button1,
+                    MessageBoxOptions.RtlReading);
                 this.Focus();
                 this.SelectAll();
             }

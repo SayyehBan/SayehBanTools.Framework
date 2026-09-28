@@ -98,7 +98,9 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             }
             catch (Exception ex)
             {
-                MessageBox.Show("خطا در نمایش بزرگتر تصویر:\n" + ex.Message, "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("خطا در نمایش بزرگتر تصویر:\n" + ex.Message, "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error,
+                    MessageBoxDefaultButton.Button1,
+                    MessageBoxOptions.RtlReading);
             }
         }
     }

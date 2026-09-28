@@ -18,7 +18,9 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
         {
             if (dtexpo == null || dtexpo.Rows.Count == 0)
             {
-                MessageBox.Show("هیچ داده‌ای برای خروجی وجود ندارد.", "هشدار", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("هیچ داده‌ای برای خروجی وجود ندارد.", "هشدار", MessageBoxButtons.OK, MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button1,
+                    MessageBoxOptions.RtlReading);
                 return;
             }
 
@@ -69,7 +71,9 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
                             "خروجی اکسل با موفقیت انجام شد.\nآیا می‌خواهید فایل باز شود؟",
                             "موفقیت",
                             MessageBoxButtons.YesNo,
-                            MessageBoxIcon.Information);
+                            MessageBoxIcon.Information,
+                    MessageBoxDefaultButton.Button1,
+                    MessageBoxOptions.RtlReading);
 
                         if (result == DialogResult.Yes)
                         {
@@ -78,12 +82,14 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("خطا در ایجاد فایل اکسل: " + ex.Message, "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("خطا در ایجاد فایل اکسل: " + ex.Message, "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error,
+                    MessageBoxDefaultButton.Button1,
+                    MessageBoxOptions.RtlReading);
                     }
                 }
             }
         }
 
-  
+
     }
 }
