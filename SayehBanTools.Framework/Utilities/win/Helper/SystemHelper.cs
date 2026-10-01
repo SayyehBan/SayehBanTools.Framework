@@ -75,7 +75,7 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
                 "خروج",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question,
-                MessageBoxDefaultButton.Button2,
+                MessageBoxDefaultButton.Button1,
                 MessageBoxOptions.RtlReading);
 
             if (dr == DialogResult.Yes)
@@ -94,7 +94,7 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
                 "خروج",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question,
-                MessageBoxDefaultButton.Button2,
+                MessageBoxDefaultButton.Button1,
                 MessageBoxOptions.RtlReading);
 
             return dr == DialogResult.Yes;
@@ -113,7 +113,7 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
                 "بستن فرم",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question,
-                MessageBoxDefaultButton.Button2,
+                MessageBoxDefaultButton.Button1,
                 MessageBoxOptions.RtlReading);
 
             if (dr == DialogResult.Yes)
@@ -132,7 +132,7 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
                 "بستن فرم",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question,
-                MessageBoxDefaultButton.Button2,
+                MessageBoxDefaultButton.Button1,
                 MessageBoxOptions.RtlReading);
 
             return dr == DialogResult.Yes;
