@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Drawing;
+using System.Runtime.CompilerServices;
 using System.Windows.Forms;
-using Excel = Microsoft.Office.Interop.Excel;
 
 namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 {
@@ -13,7 +13,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         public bool GONextCell { get; set; }
 
         [Browsable(false)]
-        public int PageSize { get; set; } = 10; // پیش‌فرض ۱۰ رکورد
+        public int PageSize { get; set; } = 10;
 
         [Browsable(false)]
         public int CurrentPage { get; private set; } = 1;
@@ -60,10 +60,9 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 Font = new Font("Tahoma", 8.5F, FontStyle.Regular)
             };
 
-            // ساخت ComboBox انتخاب تعداد رکورد
             _cmbPageSize = new ComboBox
             {
-               Cursor = Cursors.Hand,
+                Cursor = Cursors.Hand, // تغییر نشانگر موس
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Width = 65,
                 Location = new Point(220, 7),
@@ -73,7 +72,6 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             _cmbPageSize.SelectedItem = 10;
             _cmbPageSize.SelectedIndexChanged += CmbPageSize_SelectedIndexChanged;
 
-            // پنل دکمه‌های صفحات
             _pnlPageButtons = new FlowLayoutPanel
             {
                 AutoSize = true,
@@ -105,13 +103,11 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             base.OnParentChanged(e);
             if (this.Parent != null && !_pagingPanel.IsDisposed)
             {
-                // جهت جلوگیری از هم‌پوشانی اسکرول‌‌بار، DataGridView و Panel را هم‌سطح مدیریت می‌کنیم
                 this.Dock = DockStyle.Fill;
 
                 if (!this.Parent.Controls.Contains(_pagingPanel))
                 {
                     this.Parent.Controls.Add(_pagingPanel);
-                    // ترتیب Docking: پنل در پایین قرار می‌گیرد و DGV کل فضای باقیمانده را پر می‌کند
                     _pagingPanel.SendToBack();
                     this.BringToFront();
                 }
@@ -156,15 +152,12 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             int total = TotalPages;
             int current = CurrentPage;
 
-            // دکمه ابتدا >>
             _btnFirst = CreateNavButton(">>", 1, current > 1);
             _pnlPageButtons.Controls.Add(_btnFirst);
 
-            // دکمه قبلی >
             _btnPrev = CreateNavButton(">", current - 1, current > 1);
             _pnlPageButtons.Controls.Add(_btnPrev);
 
-            // محاسبه ۱۰ شماره صفحه متوالی
             int maxButtons = 10;
             int startPage = Math.Max(1, current - (maxButtons / 2));
             int endPage = startPage + maxButtons - 1;
@@ -186,7 +179,8 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                     FlatStyle = FlatStyle.Flat,
                     Margin = new Padding(1),
                     Font = new Font("Tahoma", 8F, pageNum == current ? FontStyle.Bold : FontStyle.Regular),
-                    BackColor = pageNum == current ? Color.LightSteelBlue : Color.White
+                    BackColor = pageNum == current ? Color.LightSteelBlue : Color.White,
+                    Cursor = Cursors.Hand // تغییر نشانگر موس برای شماره صفحات
                 };
                 btnNum.FlatAppearance.BorderSize = 1;
                 btnNum.FlatAppearance.BorderColor = Color.Gray;
@@ -194,6 +188,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 if (pageNum == current)
                 {
                     btnNum.Enabled = false;
+                    btnNum.Cursor = Cursors.Default; // صفحه جاری کرسر معمولی داشته باشد
                 }
                 else
                 {
@@ -203,11 +198,9 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 _pnlPageButtons.Controls.Add(btnNum);
             }
 
-            // دکمه بعدی <
             _btnNext = CreateNavButton("<", current + 1, current < total);
             _pnlPageButtons.Controls.Add(_btnNext);
 
-            // دکمه انتها <<
             _btnLast = CreateNavButton("<<", total, current < total);
             _pnlPageButtons.Controls.Add(_btnLast);
         }
@@ -221,7 +214,8 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 Height = 27,
                 FlatStyle = FlatStyle.System,
                 Margin = new Padding(1),
-                Enabled = enabled
+                Enabled = enabled,
+                Cursor = Cursors.Hand // تغییر نشانگر موس برای دکمه‌های جهت‌یاب
             };
             btn.Click += (s, e) => GoToPage(targetPage);
             return btn;
@@ -389,55 +383,72 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         {
             base.OnColumnHeaderMouseDoubleClick(e);
 
+            if (this.Rows.Count == 0) return;
+
             try
             {
-                if (this.Rows.Count == 0) return;
+                // فراخوانی متد مجزا برای جلوگیری از کرش JIT Compiler
+                ExportToExcelSafe();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("کتابخانه اکسل یافت نشد. لطفاً مطمئن شوید نرم افزار Microsoft Excel روی سیستم نصب است.\n\n" + ex.Message, "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, MessageBoxOptions.RtlReading);
+            }
+        }
 
-                Excel._Application application = new Excel.Application();
-                Excel._Workbook workbook = application.Workbooks.Add(Type.Missing);
-                Excel._Worksheet activeSheet = (Excel._Worksheet)workbook.ActiveSheet;
-                activeSheet.Name = "Sheet1";
+        // جداسازی متد و جلوگیری از Inlining برای ایمنی JIT
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void ExportToExcelSafe()
+        {
+            // پیدا کردن اکسل نصب شده روی ویندوز بدون نیاز به فایل DLL
+            Type excelType = Type.GetTypeFromProgID("Excel.Application");
 
-                int excelColIndex = 1;
-                var sortedColumns = new List<DataGridViewColumn>();
-                foreach (DataGridViewColumn col in this.Columns) sortedColumns.Add(col);
-                sortedColumns.Sort((a, b) => a.DisplayIndex.CompareTo(b.DisplayIndex));
+            if (excelType == null)
+            {
+                MessageBox.Show("نرم افزار اکسل روی سیستم شما یافت نشد.", "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, MessageBoxOptions.RtlReading);
+                return;
+            }
 
+            // ساخت نمونه از اکسل به صورت داینامیک
+            dynamic application = Activator.CreateInstance(excelType);
+            dynamic workbook = application.Workbooks.Add();
+            dynamic activeSheet = workbook.ActiveSheet;
+            activeSheet.Name = "Sheet1";
+
+            int excelColIndex = 1;
+            var sortedColumns = new List<DataGridViewColumn>();
+            foreach (DataGridViewColumn col in this.Columns) sortedColumns.Add(col);
+            sortedColumns.Sort((a, b) => a.DisplayIndex.CompareTo(b.DisplayIndex));
+
+            // چاپ هدر ستون‌ها
+            for (int col = 0; col < sortedColumns.Count; col++)
+            {
+                if (sortedColumns[col].Visible)
+                {
+                    activeSheet.Cells[1, excelColIndex] = sortedColumns[col].HeaderText;
+                    excelColIndex++;
+                }
+            }
+
+            // چاپ داده‌های سطرها
+            for (int row = 0; row < this.Rows.Count; row++)
+            {
+                if (this.Rows[row].IsNewRow) continue;
+
+                excelColIndex = 1;
                 for (int col = 0; col < sortedColumns.Count; col++)
                 {
                     if (sortedColumns[col].Visible)
                     {
-                        activeSheet.Cells[1, excelColIndex] = sortedColumns[col].HeaderText;
+                        var cellValue = this.Rows[row].Cells[sortedColumns[col].Index].Value;
+                        activeSheet.Cells[row + 2, excelColIndex] = cellValue?.ToString() ?? string.Empty;
                         excelColIndex++;
                     }
                 }
-
-                for (int row = 0; row < this.Rows.Count; row++)
-                {
-                    if (this.Rows[row].IsNewRow) continue;
-
-                    excelColIndex = 1;
-                    for (int col = 0; col < sortedColumns.Count; col++)
-                    {
-                        if (sortedColumns[col].Visible)
-                        {
-                            var cellValue = this.Rows[row].Cells[sortedColumns[col].Index].Value;
-                            activeSheet.Cells[row + 2, excelColIndex] = cellValue?.ToString() ?? string.Empty;
-                            excelColIndex++;
-                        }
-                    }
-                }
-
-                application.Visible = true;
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show("خطا در خروجی اکسل: " + ex.Message, "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error,
-                    MessageBoxDefaultButton.Button1,
-                    MessageBoxOptions.RtlReading);
-            }
+
+            application.Visible = true;
         }
-
         #endregion
     }
 
