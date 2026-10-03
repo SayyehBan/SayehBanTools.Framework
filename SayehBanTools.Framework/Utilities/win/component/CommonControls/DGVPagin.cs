@@ -4,7 +4,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
-using Excel = Microsoft.Office.Interop.Excel; // استفاده از Alias جهت جلوگیری از تداخل نام‌ها
+using Excel = Microsoft.Office.Interop.Excel;
 
 namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 {
@@ -12,9 +12,8 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
     {
         public bool GONextCell { get; set; }
 
-        // مشخصات صفحه‌بندی
         [Browsable(false)]
-        public int PageSize { get; set; } = 100;
+        public int PageSize { get; set; } = 10; // پیش‌فرض ۱۰ رکورد
 
         [Browsable(false)]
         public int CurrentPage { get; private set; } = 1;
@@ -23,14 +22,16 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         public int TotalRecords { get; private set; } = 0;
 
         [Browsable(false)]
-        public int TotalPages => (int)Math.Ceiling((double)TotalRecords / PageSize);
+        public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalRecords / PageSize) : 1;
 
-        // رویداد درخواست دریافت داده‌های صفحه جدید از سرویس/دیتابیس
         public event EventHandler<PageChangedEventArgs> PageChanged;
 
         private Panel _pagingPanel;
         private Label _lblPageInfo;
+        private ComboBox _cmbPageSize;
+        private FlowLayoutPanel _pnlPageButtons;
         private Button _btnFirst, _btnPrev, _btnNext, _btnLast;
+        private bool _isUpdatingCmb = false;
 
         public DGVPagin()
         {
@@ -45,43 +46,58 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         {
             _pagingPanel = new Panel
             {
-                Height = 35,
+                Height = 38,
                 Dock = DockStyle.Bottom,
                 Visible = false,
-                BackColor = Color.FromArgb(240, 240, 240)
+                BackColor = Color.FromArgb(240, 240, 240),
+                RightToLeft = RightToLeft.Yes
             };
 
             _lblPageInfo = new Label
             {
                 AutoSize = true,
-                Location = new Point(15, 8),
-                Font = new System.Drawing.Font("Tahoma", 9F, FontStyle.Regular)
+                Location = new Point(10, 10),
+                Font = new Font("Tahoma", 8.5F, FontStyle.Regular)
             };
 
-            _btnFirst = CreatePageButton("<<", (s, e) => GoToPage(1));
-            _btnPrev = CreatePageButton("<", (s, e) => GoToPage(CurrentPage - 1));
-            _btnNext = CreatePageButton(">", (s, e) => GoToPage(CurrentPage + 1));
-            _btnLast = CreatePageButton(">>", (s, e) => GoToPage(TotalPages));
+            // ساخت ComboBox انتخاب تعداد رکورد
+            _cmbPageSize = new ComboBox
+            {
+               Cursor = Cursors.Hand,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Width = 65,
+                Location = new Point(220, 7),
+                Font = new Font("Tahoma", 8.5F, FontStyle.Regular)
+            };
+            _cmbPageSize.Items.AddRange(new object[] { 10, 20, 50, 80, 100, 150, 200 });
+            _cmbPageSize.SelectedItem = 10;
+            _cmbPageSize.SelectedIndexChanged += CmbPageSize_SelectedIndexChanged;
+
+            // پنل دکمه‌های صفحات
+            _pnlPageButtons = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                FlowDirection = FlowDirection.RightToLeft,
+                Location = new Point(295, 4),
+                WrapContents = false
+            };
 
             _pagingPanel.Controls.Add(_lblPageInfo);
-            _pagingPanel.Controls.Add(_btnLast);
-            _pagingPanel.Controls.Add(_btnNext);
-            _pagingPanel.Controls.Add(_btnPrev);
-            _pagingPanel.Controls.Add(_btnFirst);
+            _pagingPanel.Controls.Add(_cmbPageSize);
+            _pagingPanel.Controls.Add(_pnlPageButtons);
         }
 
-        private Button CreatePageButton(string text, EventHandler onClick)
+        private void CmbPageSize_SelectedIndexChanged(object sender, EventArgs e)
         {
-            var btn = new Button
+            if (_isUpdatingCmb) return;
+
+            if (_cmbPageSize.SelectedItem != null && int.TryParse(_cmbPageSize.SelectedItem.ToString(), out int newSize))
             {
-                Text = text,
-                Width = 35,
-                Height = 25,
-                FlatStyle = FlatStyle.System,
-                Margin = new Padding(2)
-            };
-            btn.Click += onClick;
-            return btn;
+                PageSize = newSize;
+                CurrentPage = 1;
+                PageChanged?.Invoke(this, new PageChangedEventArgs { PageNumber = CurrentPage, PageSize = PageSize });
+            }
         }
 
         protected override void OnParentChanged(EventArgs e)
@@ -89,8 +105,16 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             base.OnParentChanged(e);
             if (this.Parent != null && !_pagingPanel.IsDisposed)
             {
-                this.Parent.Controls.Add(_pagingPanel);
-                _pagingPanel.BringToFront();
+                // جهت جلوگیری از هم‌پوشانی اسکرول‌‌بار، DataGridView و Panel را هم‌سطح مدیریت می‌کنیم
+                this.Dock = DockStyle.Fill;
+
+                if (!this.Parent.Controls.Contains(_pagingPanel))
+                {
+                    this.Parent.Controls.Add(_pagingPanel);
+                    // ترتیب Docking: پنل در پایین قرار می‌گیرد و DGV کل فضای باقیمانده را پر می‌کند
+                    _pagingPanel.SendToBack();
+                    this.BringToFront();
+                }
 
                 Form parentForm = this.FindForm();
                 if (parentForm != null)
@@ -105,28 +129,102 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             this.TotalRecords = totalRecords;
             this.CurrentPage = currentPage;
 
-            // شرط نمایش نوار Paging: تنها اگر رکوردهای کل بیشتر از ۱۰۰ (یا PageSize) باشد
+            _isUpdatingCmb = true;
+            if (_cmbPageSize.Items.Contains(PageSize))
+                _cmbPageSize.SelectedItem = PageSize;
+            else
+                _cmbPageSize.SelectedItem = 10;
+            _isUpdatingCmb = false;
+
             if (TotalRecords > PageSize)
             {
                 _pagingPanel.Visible = true;
-                _lblPageInfo.Text = $"صفحه {CurrentPage} از {TotalPages} (کل رکوردها: {TotalRecords})";
+                _lblPageInfo.Text = $"صفحه {CurrentPage} از {TotalPages} (کل: {TotalRecords})";
 
-                _btnFirst.Enabled = CurrentPage > 1;
-                _btnPrev.Enabled = CurrentPage > 1;
-                _btnNext.Enabled = CurrentPage < TotalPages;
-                _btnLast.Enabled = CurrentPage < TotalPages;
-
-                // تنظیم موقعیت دکمه‌ها (راست به چپ)
-                int rightMargin = _pagingPanel.Width - 40;
-                _btnLast.Location = new Point(rightMargin, 5);
-                _btnNext.Location = new Point(rightMargin - 40, 5);
-                _btnPrev.Location = new Point(rightMargin - 80, 5);
-                _btnFirst.Location = new Point(rightMargin - 120, 5);
+                RenderPageButtons();
             }
             else
             {
                 _pagingPanel.Visible = false;
             }
+        }
+
+        private void RenderPageButtons()
+        {
+            _pnlPageButtons.Controls.Clear();
+
+            int total = TotalPages;
+            int current = CurrentPage;
+
+            // دکمه ابتدا >>
+            _btnFirst = CreateNavButton(">>", 1, current > 1);
+            _pnlPageButtons.Controls.Add(_btnFirst);
+
+            // دکمه قبلی >
+            _btnPrev = CreateNavButton(">", current - 1, current > 1);
+            _pnlPageButtons.Controls.Add(_btnPrev);
+
+            // محاسبه ۱۰ شماره صفحه متوالی
+            int maxButtons = 10;
+            int startPage = Math.Max(1, current - (maxButtons / 2));
+            int endPage = startPage + maxButtons - 1;
+
+            if (endPage > total)
+            {
+                endPage = total;
+                startPage = Math.Max(1, endPage - maxButtons + 1);
+            }
+
+            for (int p = startPage; p <= endPage; p++)
+            {
+                int pageNum = p;
+                var btnNum = new Button
+                {
+                    Text = pageNum.ToString(),
+                    Width = 32,
+                    Height = 27,
+                    FlatStyle = FlatStyle.Flat,
+                    Margin = new Padding(1),
+                    Font = new Font("Tahoma", 8F, pageNum == current ? FontStyle.Bold : FontStyle.Regular),
+                    BackColor = pageNum == current ? Color.LightSteelBlue : Color.White
+                };
+                btnNum.FlatAppearance.BorderSize = 1;
+                btnNum.FlatAppearance.BorderColor = Color.Gray;
+
+                if (pageNum == current)
+                {
+                    btnNum.Enabled = false;
+                }
+                else
+                {
+                    btnNum.Click += (s, e) => GoToPage(pageNum);
+                }
+
+                _pnlPageButtons.Controls.Add(btnNum);
+            }
+
+            // دکمه بعدی <
+            _btnNext = CreateNavButton("<", current + 1, current < total);
+            _pnlPageButtons.Controls.Add(_btnNext);
+
+            // دکمه انتها <<
+            _btnLast = CreateNavButton("<<", total, current < total);
+            _pnlPageButtons.Controls.Add(_btnLast);
+        }
+
+        private Button CreateNavButton(string text, int targetPage, bool enabled)
+        {
+            var btn = new Button
+            {
+                Text = text,
+                Width = 32,
+                Height = 27,
+                FlatStyle = FlatStyle.System,
+                Margin = new Padding(1),
+                Enabled = enabled
+            };
+            btn.Click += (s, e) => GoToPage(targetPage);
+            return btn;
         }
 
         private void GoToPage(int page)
