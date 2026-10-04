@@ -6,6 +6,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Abstractions;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -171,78 +172,107 @@ namespace SayehBanTools.Framework.ManageFile
             return newdirect ?? string.Empty;
         }
         /// <summary>
-        /// تبدیل تصویر به آرایه بایت با حفظ دقیق نوع اصلی (PNG، JPG، BMP، GIF و ...)
-        /// مناسب برای تصاویر خیلی بزرگ یا مشکل‌دار
+        /// فشرده‌سازی و تبدیل تصویر به فرمت استاندارد PNG با حفظ کامل شفافیت (Transparency) و بدون تغییر هدر استاندارد
         /// </summary>
-        /// <param name="image">تصویر</param>
-        /// <returns>بایت آرایه تصویر اصلی</returns>
-
-        public static byte[] ImageToByteArray(Image image, int maxWidth = 600, int maxHeight = 600, long jpegQuality = 85)
+        public static byte[] ImageToByteArray(Image image, int maxWidth = 500, int maxHeight = 500)
         {
             if (image == null) return null;
 
-            // ۱. تغییر سایز اگر تصویر از حد مجاز بزرگتره
-            Image resized = ResizeIfNeeded(image, maxWidth, maxHeight);
+            // ۱. محاسبه نسبت ابعاد
+            double ratioX = (double)maxWidth / image.Width;
+            double ratioY = (double)maxHeight / image.Height;
+            double ratio = Math.Min(ratioX, ratioY);
 
-            using (var ms = new MemoryStream())
+            int newWidth = image.Width;
+            int newHeight = image.Height;
+
+            if (ratio < 1.0)
             {
-                bool hasTransparency = ImageHasTransparency(resized);
+                newWidth = Math.Max(1, (int)(image.Width * ratio));
+                newHeight = Math.Max(1, (int)(image.Height * ratio));
+            }
 
-                if (hasTransparency)
+            // ۲. تولید بیت‌مپ با رزولوشن بهینه برای وب/دسکتاپ (کاهش چشمگیر حجم)
+            using (var newImage = new Bitmap(newWidth, newHeight, PixelFormat.Format32bppArgb))
+            {
+                newImage.SetResolution(72, 72);
+
+                using (var g = Graphics.FromImage(newImage))
                 {
-                    // لوگوهای شفاف باید PNG بمونن
-                    resized.Save(ms, ImageFormat.Png);
+                    g.Clear(Color.Transparent);
+                    g.CompositingMode = CompositingMode.SourceOver;
+                    g.CompositingQuality = CompositingQuality.HighSpeed;
+                    g.InterpolationMode = InterpolationMode.HighQualityBilinear;
+                    g.SmoothingMode = SmoothingMode.HighQuality;
+                    g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                    g.DrawImage(image, new Rectangle(0, 0, newWidth, newHeight));
                 }
-                else
+
+                // ۳. ذخیره مستقیم به فرمت معتبر PNG
+                using (var ms = new MemoryStream())
                 {
-                    // برای بقیه تصاویر PNG با کیفیت بالا => حجم خیلی کمتر
-                    var jpegEncoder = ImageCodecInfo.GetImageDecoders()
-                        .First(c => c.FormatID == ImageFormat.Png.Guid);
-
-                    var encParams = new EncoderParameters(1);
-                    encParams.Param[0] = new EncoderParameter(Encoder.Quality, jpegQuality);
-
-                    resized.Save(ms, jpegEncoder, encParams);
+                    newImage.Save(ms, ImageFormat.Png);
+                    return ms.ToArray();
                 }
-
-                if (resized != image) resized.Dispose();
-
-                return ms.ToArray();
             }
         }
 
-        private static Image ResizeIfNeeded(Image original, int maxWidth, int maxHeight)
+        /// <summary>
+        /// تغییر سایز دقیق با Interpolation باکیفیت و رزولوشن بهینه
+        /// </summary>
+        private static Bitmap ResizeImagePreserveAlpha(Image original, int maxWidth, int maxHeight)
         {
-            if (original.Width <= maxWidth && original.Height <= maxHeight)
-                return original;
+            double ratioX = (double)maxWidth / original.Width;
+            double ratioY = (double)maxHeight / original.Height;
+            double ratio = Math.Min(ratioX, ratioY);
 
-            double ratio = Math.Min((double)maxWidth / original.Width, (double)maxHeight / original.Height);
-            int newWidth = (int)(original.Width * ratio);
-            int newHeight = (int)(original.Height * ratio);
+            int newWidth = original.Width;
+            int newHeight = original.Height;
 
-            var newImage = new Bitmap(newWidth, newHeight);
+            // اگر ابعاد بزرگتر از حد تعیین شده باشد، کوچک می‌شود
+            if (ratio < 1.0)
+            {
+                newWidth = Math.Max(1, (int)(original.Width * ratio));
+                newHeight = Math.Max(1, (int)(original.Height * ratio));
+            }
+
+            var newImage = new Bitmap(newWidth, newHeight, PixelFormat.Format32bppArgb);
+            newImage.SetResolution(96, 96); // استانداردسازی DPI جهت کاهش سربار حجم تصویر
+
             using (var g = Graphics.FromImage(newImage))
             {
+                g.Clear(Color.Transparent);
+                g.CompositingMode = CompositingMode.SourceOver;
+                g.CompositingQuality = CompositingQuality.HighQuality;
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 g.SmoothingMode = SmoothingMode.HighQuality;
                 g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                g.DrawImage(original, 0, 0, newWidth, newHeight);
+
+                g.DrawImage(original, new Rectangle(0, 0, newWidth, newHeight));
             }
+
             return newImage;
         }
 
-        private static bool ImageHasTransparency(Image image)
+        /// <summary>
+        /// فشرده‌سازی داخلی برای کاهش بایت‌های اضافی و متادیتاهای PNG
+        /// </summary>
+        private static byte[] OptimizePngBytes(byte[] input)
         {
-            if (!(image is Bitmap bmp)) return false;
-            if (!Image.IsAlphaPixelFormat(bmp.PixelFormat)) return false;
+            using (var inputStream = new MemoryStream(input))
+            using (var outputStream = new MemoryStream())
+            {
+                // استفاده از فشرده‌سازی بهینه سازگار با ذخیره‌سازی داده‌های دیتابیس
+                using (var deflate = new DeflateStream(outputStream, CompressionLevel.Optimal, true))
+                {
+                    inputStream.CopyTo(deflate);
+                }
 
-            // بررسی سریع چند پیکسل (برای سرعت، نه همه پیکسل‌ها)
-            for (int x = 0; x < bmp.Width; x += Math.Max(1, bmp.Width / 20))
-                for (int y = 0; y < bmp.Height; y += Math.Max(1, bmp.Height / 20))
-                    if (bmp.GetPixel(x, y).A < 255)
-                        return true;
-
-            return false;
+                // در صورت موثر بودن فشرده‌سازی، خروجی بهینه برگشت داده می‌شود
+                byte[] compressed = outputStream.ToArray();
+                return compressed.Length < input.Length ? compressed : input;
+            }
         }
     }
 }
