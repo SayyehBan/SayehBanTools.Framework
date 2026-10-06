@@ -137,5 +137,28 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
 
             return dr == DialogResult.Yes;
         }
+        // نگهداری یک نمونه استاتیک برای جلوگیری از پاک شدن سریع از حافظه
+        public static class WindowsNotifier
+        {
+            // نگهداری یک نمونه استاتیک برای جلوگیری از پاک شدن سریع از حافظه
+            private static NotifyIcon _notifyIcon;
+
+            public static void Show(string title, string message, ToolTipIcon iconType = ToolTipIcon.Info)
+            {
+                // اگر هنوز ساخته نشده بود، آن را ایجاد می‌کنیم
+                if (_notifyIcon == null)
+                {
+                    _notifyIcon = new NotifyIcon
+                    {
+                        Icon = SystemIcons.Information,
+                        Visible = true
+                    };
+                }
+
+                // اطمینان از دیده شدن و ارسال پیام به ویندوز
+                _notifyIcon.Visible = true;
+                _notifyIcon.ShowBalloonTip(3000, title, message, iconType);
+            }
+        }
     }
 }
