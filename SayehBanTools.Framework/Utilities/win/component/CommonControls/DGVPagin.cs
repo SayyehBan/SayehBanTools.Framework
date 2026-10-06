@@ -33,12 +33,134 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         private Button _btnFirst, _btnPrev, _btnNext, _btnLast;
         private bool _isUpdatingCmb = false;
 
+        // متغیرهای مربوط به چک‌باکس انتخاب همه (Select All)
+        private CheckBox _headerCheckBox;
+        private string _selectAllColumnName = "";
+
         public DGVPagin()
         {
             DoubleBuffered = true;
             this.AllowUserToOrderColumns = true;
             InitializePagingControls();
         }
+
+        #region چک‌باکس یکپارچه هدر (Select All)
+
+        /// <summary>
+        /// با فراخوانی این متد، یک چک‌باکس اصلی در هدر ستون موردنظر برای انتخاب همه قرار می‌گیرد
+        /// </summary>
+        /// <param name="checkboxColumnName">نام ستون چک‌باکس در گرید (مثلاً colSelect)</param>
+        public void EnableSelectAllCheckbox(string checkboxColumnName = "colSelect")
+        {
+            _selectAllColumnName = checkboxColumnName;
+
+            if (_headerCheckBox == null)
+            {
+                _headerCheckBox = new CheckBox
+                {
+                    Size = new Size(15, 15),
+                    BackColor = Color.Transparent,
+                    Cursor = Cursors.Hand,
+                    TabStop = false
+                };
+
+                this.Controls.Add(_headerCheckBox);
+
+                // مدیریت رویداد کلیک روی چک‌باکس اصلی
+                _headerCheckBox.CheckedChanged += MasterCheckBox_CheckedChanged;
+
+                // مدیریت تغییر موقعیت هدر
+                this.ColumnWidthChanged += (s, e) => UpdateHeaderCheckBoxPosition();
+                this.Scroll += (s, e) => UpdateHeaderCheckBoxPosition();
+                this.Paint += (s, e) => UpdateHeaderCheckBoxPosition();
+                this.SizeChanged += (s, e) => UpdateHeaderCheckBoxPosition();
+
+                // در زمان بایند شدن دیتا، چک باکس خاموش شود
+                this.DataBindingComplete += (s, e) =>
+                {
+                    _headerCheckBox.CheckedChanged -= MasterCheckBox_CheckedChanged;
+                    _headerCheckBox.Checked = false;
+                    _headerCheckBox.CheckedChanged += MasterCheckBox_CheckedChanged;
+                    UpdateHeaderCheckBoxPosition();
+                };
+
+                // بروزرسانی چک‌باکس اصلی در صورتی که کاربر چک‌باکس‌های تکی را کلیک کند
+                this.CurrentCellDirtyStateChanged += (s, e) =>
+                {
+                    if (this.IsCurrentCellDirty && this.CurrentCell.OwningColumn.Name == _selectAllColumnName)
+                    {
+                        this.CommitEdit(DataGridViewDataErrorContexts.Commit);
+                    }
+                };
+
+                this.CellValueChanged += (s, e) =>
+                {
+                    // اضافه شدن شرط e.ColumnIndex >= 0 برای جلوگیری از خطای تغییر هدر ردیف
+                    if (e.RowIndex >= 0 && e.ColumnIndex >= 0 && this.Columns[e.ColumnIndex].Name == _selectAllColumnName)
+                    {
+                        CheckMasterCheckBoxState();
+                    }
+                };
+            }
+        }
+        private void MasterCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            this.EndEdit();
+            bool isChecked = _headerCheckBox.Checked;
+            foreach (DataGridViewRow row in this.Rows)
+            {
+                if (!row.IsNewRow)
+                {
+                    row.Cells[_selectAllColumnName].Value = isChecked;
+                }
+            }
+        }
+
+        private void CheckMasterCheckBoxState()
+        {
+            if (_headerCheckBox == null || this.Rows.Count == 0) return;
+
+            bool allChecked = true;
+            foreach (DataGridViewRow row in this.Rows)
+            {
+                if (!row.IsNewRow)
+                {
+                    object val = row.Cells[_selectAllColumnName].Value;
+                    if (val == null || !(bool)val)
+                    {
+                        allChecked = false;
+                        break;
+                    }
+                }
+            }
+
+            // غیرفعال کردن موقت رویداد برای جلوگیری از لوپ
+            _headerCheckBox.CheckedChanged -= MasterCheckBox_CheckedChanged;
+            _headerCheckBox.Checked = allChecked;
+            _headerCheckBox.CheckedChanged += MasterCheckBox_CheckedChanged;
+        }
+
+        private void UpdateHeaderCheckBoxPosition()
+        {
+            if (_headerCheckBox != null && this.Columns.Contains(_selectAllColumnName))
+            {
+                Rectangle rect = this.GetCellDisplayRectangle(this.Columns[_selectAllColumnName].Index, -1, true);
+                if (rect.Width > 0 && rect.Height > 0)
+                {
+                    // قرار دادن چک باکس دقیقاً در وسط سلول هدر
+                    _headerCheckBox.Location = new Point(rect.Location.X + (rect.Width - _headerCheckBox.Width) / 2,
+                                                         rect.Location.Y + (rect.Height - _headerCheckBox.Height) / 2);
+                    _headerCheckBox.Visible = true;
+                    _headerCheckBox.BringToFront();
+                }
+                else
+                {
+                    _headerCheckBox.Visible = false;
+                }
+            }
+        }
+
+        #endregion
 
         #region ساخت نوار ابزار Paging
 
@@ -62,7 +184,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 
             _cmbPageSize = new ComboBox
             {
-                Cursor = Cursors.Hand, // تغییر نشانگر موس
+                Cursor = Cursors.Hand,
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Width = 65,
                 Location = new Point(220, 7),
@@ -180,7 +302,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                     Margin = new Padding(1),
                     Font = new Font("Tahoma", 8F, pageNum == current ? FontStyle.Bold : FontStyle.Regular),
                     BackColor = pageNum == current ? Color.LightSteelBlue : Color.White,
-                    Cursor = Cursors.Hand // تغییر نشانگر موس برای شماره صفحات
+                    Cursor = Cursors.Hand
                 };
                 btnNum.FlatAppearance.BorderSize = 1;
                 btnNum.FlatAppearance.BorderColor = Color.Gray;
@@ -188,7 +310,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 if (pageNum == current)
                 {
                     btnNum.Enabled = false;
-                    btnNum.Cursor = Cursors.Default; // صفحه جاری کرسر معمولی داشته باشد
+                    btnNum.Cursor = Cursors.Default;
                 }
                 else
                 {
@@ -215,7 +337,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 FlatStyle = FlatStyle.System,
                 Margin = new Padding(1),
                 Enabled = enabled,
-                Cursor = Cursors.Hand // تغییر نشانگر موس برای دکمه‌های جهت‌یاب
+                Cursor = Cursors.Hand
             };
             btn.Click += (s, e) => GoToPage(targetPage);
             return btn;
@@ -387,7 +509,6 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 
             try
             {
-                // فراخوانی متد مجزا برای جلوگیری از کرش JIT Compiler
                 ExportToExcelSafe();
             }
             catch (Exception ex)
@@ -396,11 +517,9 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             }
         }
 
-        // جداسازی متد و جلوگیری از Inlining برای ایمنی JIT
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void ExportToExcelSafe()
         {
-            // پیدا کردن اکسل نصب شده روی ویندوز بدون نیاز به فایل DLL
             Type excelType = Type.GetTypeFromProgID("Excel.Application");
 
             if (excelType == null)
@@ -409,7 +528,6 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 return;
             }
 
-            // ساخت نمونه از اکسل به صورت داینامیک
             dynamic application = Activator.CreateInstance(excelType);
             dynamic workbook = application.Workbooks.Add();
             dynamic activeSheet = workbook.ActiveSheet;
@@ -420,7 +538,6 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             foreach (DataGridViewColumn col in this.Columns) sortedColumns.Add(col);
             sortedColumns.Sort((a, b) => a.DisplayIndex.CompareTo(b.DisplayIndex));
 
-            // چاپ هدر ستون‌ها
             for (int col = 0; col < sortedColumns.Count; col++)
             {
                 if (sortedColumns[col].Visible)
@@ -430,7 +547,6 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 }
             }
 
-            // چاپ داده‌های سطرها
             for (int row = 0; row < this.Rows.Count; row++)
             {
                 if (this.Rows[row].IsNewRow) continue;

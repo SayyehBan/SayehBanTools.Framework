@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using SayehBanTools.Framework.Converter;
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -272,6 +273,37 @@ namespace SayehBanTools.Framework.ManageFile
                 // در صورت موثر بودن فشرده‌سازی، خروجی بهینه برگشت داده می‌شود
                 byte[] compressed = outputStream.ToArray();
                 return compressed.Length < input.Length ? compressed : input;
+            }
+        }
+        /// <summary>
+        /// دریافت باینری و ارسال به استیمول برای نمایش عکس
+        /// </summary>
+        public static class ImageConverterHelper
+        {
+            /// <summary>
+            /// تبدیل آرایه بایت به تصویر بدون وابستگی به کامپوننت‌های گزارش‌گیر
+            /// </summary>
+            public static Image ByteArrayToImage(byte[] imageBytes)
+            {
+                if (imageBytes == null || imageBytes.Length == 0)
+                    return null;
+
+                try
+                {
+                    using (MemoryStream ms = new MemoryStream(imageBytes))
+                    {
+                        using (Image img = Image.FromStream(ms))
+                        {
+                            // ساخت کپی جدید باعث می‌شود بتوانیم استریم را ببندیم بدون اینکه تصویر خراب شود
+                            return new Bitmap(img);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("خطا در تبدیل بایت به تصویر: " + ex.Message);
+                    return null;
+                }
             }
         }
     }
