@@ -100,7 +100,7 @@ namespace SayehBanTools.Framework.ShowDateTime
         public static string MiladiToShamsi(DateTime MiladiDate)
         {
             string shDate = string.Empty;
-            System.Globalization.PersianCalendar perCal = new System.Globalization.PersianCalendar();
+            PersianCalendar perCal = new PersianCalendar();
 
             shDate = perCal.GetYear(MiladiDate) + "/" + perCal.GetMonth(MiladiDate).ToString("00") + "/" + perCal.GetDayOfMonth(MiladiDate).ToString("00");
             //shDate = shDate + " " + MiladiDate.ToString("HH:mm:ss", System.Globalization.DateTimeFormatInfo.InvariantInfo);
@@ -120,13 +120,13 @@ namespace SayehBanTools.Framework.ShowDateTime
                 string[] DatePara = ShDate.Split('/');
                 if (DatePara.Length == 3) // Ensure the split resulted in exactly 3 parts
                 {
-                    System.Globalization.PersianCalendar perCal = new System.Globalization.PersianCalendar();
+                    PersianCalendar perCal = new PersianCalendar();
                     dt = perCal.ToDateTime(
                         Convert.ToInt16(DatePara[0]),
                         Convert.ToInt16(DatePara[1]),
                         Convert.ToInt16(DatePara[2]),
                         20, 30, 15, 500,
-                        System.Globalization.PersianCalendar.PersianEra
+                        PersianCalendar.PersianEra
                     );
                 }
             }
