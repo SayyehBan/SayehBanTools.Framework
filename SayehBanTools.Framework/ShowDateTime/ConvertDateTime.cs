@@ -6,7 +6,7 @@ namespace SayehBanTools.Framework.ShowDateTime
     /// <summary>
     /// این کلاس برای تبدیل تاریخ به فارسی استفاده میشود
     /// </summary>
-    public class ConvertDateTime
+    public static class ConvertDateTime
     {    /// <summary>
          /// کد مربوط به تاریخ به صورت ماه و روز
          /// </summary>
@@ -131,6 +131,44 @@ namespace SayehBanTools.Framework.ShowDateTime
                 }
             }
             return dt;
+        }
+        // متد کمکی برای جلوگیری از تکرار کدهای تبدیل تاریخ
+        public static string ConvertToPersianDateTimeUTC(DateTime dtValue)
+        {
+            DateTime utcDate = DateTime.SpecifyKind(dtValue, DateTimeKind.Utc);
+            DateTime iranTime;
+
+            try
+            {
+                TimeZoneInfo iranTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Iran Standard Time");
+                iranTime = TimeZoneInfo.ConvertTimeFromUtc(utcDate, iranTimeZone);
+            }
+            catch
+            {
+                iranTime = utcDate.AddHours(3.5);
+            }
+
+            PersianCalendar pc = new PersianCalendar();
+            return $"{pc.GetYear(iranTime):0000}/{pc.GetMonth(iranTime):00}/{pc.GetDayOfMonth(iranTime):00} {iranTime:HH:mm:ss}";
+        }
+        // متد کمکی برای جلوگیری از تکرار کدهای تبدیل تاریخ
+        public static string ConvertToPersianDateUTC(DateTime dtValue)
+        {
+            DateTime utcDate = DateTime.SpecifyKind(dtValue, DateTimeKind.Utc);
+            DateTime iranTime;
+
+            try
+            {
+                TimeZoneInfo iranTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Iran Standard Time");
+                iranTime = TimeZoneInfo.ConvertTimeFromUtc(utcDate, iranTimeZone);
+            }
+            catch
+            {
+                iranTime = utcDate.AddHours(3.5);
+            }
+
+            PersianCalendar pc = new PersianCalendar();
+            return $"{pc.GetYear(iranTime):0000}/{pc.GetMonth(iranTime):00}/{pc.GetDayOfMonth(iranTime):00}";
         }
     }
 }
