@@ -1,4 +1,5 @@
-﻿using SayehBanTools.Framework.ShowDateTime;
+﻿using Elastic.Clients.Elasticsearch.TextStructure;
+using SayehBanTools.Framework.ShowDateTime;
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
@@ -36,6 +37,12 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
                     e.Value = ConvertDateTime.ConvertToPersianDateTimeUTC(dtValue);
                     e.FormattingApplied = true;
                 }
+                else if (formatType == 2 && e.Value is DateTime dtValue2)
+                {
+                    // فرمت 2: فقط تاریخ (بدون ساعت)
+                    e.Value = ConvertDateTime.ConvertToPersianDateUTC(dtValue2);
+                    e.FormattingApplied = true;
+                }
                 else if (formatType == 3 && e.Value is bool boolValue)
                 {
                     e.Value = boolValue ? trueValue : falseValue;
@@ -56,6 +63,12 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
                 if (config.FormatType == 1 && e.Value is DateTime dtValue)
                 {
                     e.Value = ConvertDateTime.ConvertToPersianDateTimeUTC(dtValue);
+                    e.FormattingApplied = true;
+                }
+                else if (config.FormatType == 2 && e.Value is DateTime dtValue2)
+                {
+                    // فرمت 2: فقط تاریخ (بدون ساعت)
+                    e.Value = ConvertDateTime.ConvertToPersianDateUTC(dtValue2);
                     e.FormattingApplied = true;
                 }
                 else if (config.FormatType == 3 && e.Value is bool boolValue)
