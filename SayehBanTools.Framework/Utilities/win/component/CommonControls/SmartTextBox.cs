@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices; // برای Watermark الزامی است
 using System.Windows.Forms;
 
 namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
@@ -19,6 +20,35 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 
         private TargetInputType _inputType = TargetInputType.Normal;
         private bool _isGregorianDate = false;
+
+        // ==========================================
+        // بخش اضافه شده برای Watermark (متن راهنما)
+        // ==========================================
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern Int32 SendMessage(IntPtr hWnd, int msg, int wParam, [MarshalAs(UnmanagedType.LPWStr)] string lParam);
+        private const int EM_SETCUEBANNER = 0x1501;
+
+        private string _watermark = string.Empty;
+
+        [Category("Smart Properties")]
+        [Description("متن راهنمای کم‌رنگ (Watermark) در زمان خالی بودن کادر")]
+        public string Watermark
+        {
+            get => _watermark;
+            set
+            {
+                _watermark = value;
+                if (this.IsHandleCreated) SendMessage(this.Handle, EM_SETCUEBANNER, 1, value);
+            }
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            if (!string.IsNullOrEmpty(_watermark))
+                SendMessage(this.Handle, EM_SETCUEBANNER, 1, _watermark);
+        }
+        // ==========================================
 
         #region Properties
 

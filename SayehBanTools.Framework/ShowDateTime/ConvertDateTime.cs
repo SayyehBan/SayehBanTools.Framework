@@ -170,5 +170,25 @@ namespace SayehBanTools.Framework.ShowDateTime
             PersianCalendar pc = new PersianCalendar();
             return $"{pc.GetYear(iranTime):0000}/{pc.GetMonth(iranTime):00}/{pc.GetDayOfMonth(iranTime):00}";
         }
+        public static string GetCurrentYearPersion()
+        {
+            System.Globalization.PersianCalendar pc = new System.Globalization.PersianCalendar();
+            string currentPrefix = pc.GetYear(DateTime.Now).ToString();
+            return currentPrefix;
+        }
+        public static string GetCurrentYearMonthPersion()
+        {
+            System.Globalization.PersianCalendar pc = new System.Globalization.PersianCalendar();
+            string currentPrefix = pc.GetYear(DateTime.Now).ToString() + pc.GetMonth(DateTime.Now).ToString("00");
+            return currentPrefix;
+        }
+        public static string GetCurrentFullPersion()
+        {
+            System.Globalization.PersianCalendar pc = new System.Globalization.PersianCalendar();
+            string currentPrefix = pc.GetYear(DateTime.Now).ToString() +
+                                   pc.GetMonth(DateTime.Now).ToString("00") +
+                                   pc.GetDayOfMonth(DateTime.Now).ToString("00"); // این بخش اصلاح شد
+            return currentPrefix;
+        }
     }
 }
