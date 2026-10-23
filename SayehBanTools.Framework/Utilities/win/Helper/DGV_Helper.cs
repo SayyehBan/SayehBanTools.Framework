@@ -1,5 +1,4 @@
-﻿using Elastic.Clients.Elasticsearch.TextStructure;
-using SayehBanTools.Framework.ShowDateTime;
+﻿using SayehBanTools.Framework.ShowDateTime;
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
@@ -46,6 +45,12 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
                 else if (formatType == 3 && e.Value is bool boolValue)
                 {
                     e.Value = boolValue ? trueValue : falseValue;
+                    e.FormattingApplied = true;
+                }
+                else if (formatType == 4 && e.Value is DateTime dtValue3)
+                {
+                    // فرمت 2: فقط تاریخ (بدون ساعت)
+                    e.Value = ConvertDateTime.MiladiToShamsi(dtValue3);
                     e.FormattingApplied = true;
                 }
             }

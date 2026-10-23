@@ -8,31 +8,87 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 {
     public class PicBox : PictureBox
     {
-        /// <summary>
-        /// نگهداشت بایت‌های تصویر (برای تصاویری که از دیتابیس دریافت می‌شوند)
-        /// </summary>
         public byte[] RawImageBytes { get; private set; }
-
-        /// <summary>
-        /// نگهداشت مسیر فایل (برای تصاویری که از سیستم انتخاب می‌شوند)
-        /// </summary>
         public string ImagePath { get; private set; }
+
+        // تعریف دکمه حذف و ToolTip
+        private Button btnRemove;
+        private ToolTip toolTip;
 
         public PicBox()
         {
             this.SizeMode = PictureBoxSizeMode.Zoom;
             this.BorderStyle = BorderStyle.Fixed3D;
             this.Cursor = Cursors.Hand;
+
+            // پیکربندی ظاهر و عملکرد دکمه حذف
+            btnRemove = new Button();
+            btnRemove.Text = "✖";
+            btnRemove.ForeColor = Color.White;
+            btnRemove.BackColor = Color.Red;
+            btnRemove.FlatStyle = FlatStyle.Flat;
+            btnRemove.FlatAppearance.BorderSize = 0;
+            btnRemove.Size = new Size(22, 22);
+            btnRemove.Cursor = Cursors.Hand;
+            btnRemove.Visible = false; // در حالت پیش‌فرض مخفی است
+            btnRemove.Font = new Font("Arial", 8, FontStyle.Bold);
+            btnRemove.Click += BtnRemove_Click;
+
+            toolTip = new ToolTip();
+            toolTip.SetToolTip(btnRemove, "حذف");
+
+            this.Controls.Add(btnRemove);
         }
 
-        /// <summary>
-        /// بارگذاری و نمایش تصویر مستقیم از آرایه بایتی دیتابیس
-        /// </summary>
-        /// <param name="imageBytes">بایت‌های تصویر دریافتی از SQL Server</param>
+        // رویداد کلیک دکمه ضربدر
+        private void BtnRemove_Click(object sender, EventArgs e)
+        {
+            ClearImage();
+        }
+
+        // متد پاکسازی تصویر و ریست متغیرها
+        public void ClearImage()
+        {
+            if (this.Image != null)
+            {
+                this.Image.Dispose();
+            }
+            this.Image = null;
+            this.RawImageBytes = null;
+            this.ImagePath = null;
+            btnRemove.Visible = false;
+        }
+
+        // بروزرسانی موقعیت دکمه با تغییر سایز کنترل
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            UpdateBtnPosition();
+        }
+
+        // بروزرسانی موقعیت دکمه بر اساس راست‌چین یا چپ‌چین بودن فرم
+        protected override void OnRightToLeftChanged(EventArgs e)
+        {
+            base.OnRightToLeftChanged(e);
+            UpdateBtnPosition();
+        }
+
+        private void UpdateBtnPosition()
+        {
+            if (this.RightToLeft == RightToLeft.Yes)
+            {
+                btnRemove.Location = new Point(0, 0); // چپ
+            }
+            else
+            {
+                btnRemove.Location = new Point(this.Width - btnRemove.Width, 0); // راست
+            }
+        }
+
         public void SetImageFromBytes(byte[] imageBytes)
         {
             this.RawImageBytes = imageBytes;
-            this.ImagePath = null; // پاکسازی مسیر قبلی در صورت وجود
+            this.ImagePath = null;
 
             if (imageBytes != null && imageBytes.Length > 0)
             {
@@ -45,43 +101,30 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                             this.Image.Dispose();
                         }
                         this.Image = Image.FromStream(ms);
+                        btnRemove.Visible = true; // نمایش ضربدر
                     }
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine("خطا در بارگذاری تصویر: " + ex.Message);
-                    this.Image = null;
+                    ClearImage();
                 }
             }
             else
             {
-                if (this.Image != null)
-                {
-                    this.Image.Dispose();
-                }
-                this.Image = null;
+                ClearImage();
             }
         }
 
-        /// <summary>
-        /// دریافت بایت‌های تصویر فعلی برای ذخیره‌سازی یا بروزرسانی در دیتابیس
-        /// </summary>
-        /// <returns>آرایه بایتی تصویر جهت ارسال به Stored Procedure</returns>
         public byte[] GetImageBytes()
         {
-            // اگر تصویر جدیدی از دیسک انتخاب شده باشد
             if (!string.IsNullOrEmpty(ImagePath) && File.Exists(ImagePath))
             {
                 return File.ReadAllBytes(ImagePath);
             }
-
-            // اگر تصویر تغییر نکرده و همان بایت‌های قبلی دیتابیس است
             return RawImageBytes;
         }
 
-        /// <summary>
-        /// با دوبار کلیک، پنجره انتخاب فایل تصویر جدید باز می‌شود
-        /// </summary>
         protected override void OnDoubleClick(EventArgs e)
         {
             base.OnDoubleClick(e);
@@ -110,7 +153,8 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 
                             this.Image = Image.FromStream(ms);
                             this.ImagePath = dialog.FileName;
-                            this.RawImageBytes = fileBytes; // بروزرسانی بایت‌ها با فایل جدید
+                            this.RawImageBytes = fileBytes;
+                            btnRemove.Visible = true; // نمایش ضربدر
                         }
                     }
                     catch (Exception ex)
@@ -123,11 +167,12 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             }
         }
 
-        /// <summary>
-        /// با تک‌کلیک، تصویر فعلی (چه فایل محلی و چه بایت‌های دیتابیس) بزرگ نمایش داده می‌شود
-        /// </summary>
         protected override void OnClick(EventArgs e)
         {
+            // در صورتی که کلیک دقیقاً روی دکمه ضربدر انجام شده باشد، کد باز کردن عکس متوقف می‌شود
+            if (e is MouseEventArgs mouseArgs && btnRemove.Bounds.Contains(mouseArgs.Location))
+                return;
+
             base.OnClick(e);
 
             if (this.Image == null) return;
@@ -136,7 +181,6 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             {
                 string targetPath = this.ImagePath;
 
-                // اگر تصویر از دیتابیس آمده و فایل روی دیسک ندارد، یک فایل موقت (Temp) ایجاد می‌شود
                 if (string.IsNullOrEmpty(targetPath) || !File.Exists(targetPath))
                 {
                     if (this.RawImageBytes != null && this.RawImageBytes.Length > 0)
@@ -152,7 +196,6 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                     }
                 }
 
-                // باز کردن تصویر در نمایشگر پیش‌فرض ویندوز
                 if (!string.IsNullOrEmpty(targetPath) && File.Exists(targetPath))
                 {
                     Process.Start(new ProcessStartInfo
@@ -166,7 +209,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             {
                 MessageBox.Show("خطا در نمایش بزرگتر تصویر:\n" + ex.Message, "خطا",
                     MessageBoxButtons.OK,
-                    MessageBoxIcon.Error, 
+                    MessageBoxIcon.Error,
                     MessageBoxDefaultButton.Button1,
                     MessageBoxOptions.RtlReading);
             }
