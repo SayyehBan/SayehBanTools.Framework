@@ -1,8 +1,8 @@
-﻿using Microsoft.Office.Interop.Excel;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Drawing;
+using System.Runtime.CompilerServices;
 using System.Windows.Forms;
 
 namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
@@ -204,57 +204,70 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         {
             base.OnColumnHeaderMouseDoubleClick(e);
 
+            if (this.Rows.Count == 0) return;
+
             try
             {
-                if (this.Rows.Count == 0) return;
+                ExportToExcelSafe();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("کتابخانه اکسل یافت نشد. لطفاً مطمئن شوید نرم افزار Microsoft Excel روی سیستم نصب است.\n\n" + ex.Message, "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, MessageBoxOptions.RtlReading);
+            }
+        }
 
-                _Application application = new Microsoft.Office.Interop.Excel.Application();
-                _Workbook workbook = application.Workbooks.Add(Type.Missing);
-                _Worksheet activeSheet = (_Worksheet)workbook.ActiveSheet;
-                activeSheet.Name = "Sheet1";
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void ExportToExcelSafe()
+        {
+            // استفاده از Late Binding برای جلوگیری از نیاز به رفرنس دادن DLL های آفیس
+            Type excelType = Type.GetTypeFromProgID("Excel.Application");
 
-                int excelColIndex = 1;
+            if (excelType == null)
+            {
+                MessageBox.Show("نرم افزار اکسل روی سیستم شما یافت نشد.", "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, MessageBoxOptions.RtlReading);
+                return;
+            }
 
-                // مرتب‌سازی ستون‌ها بر اساس DisplayIndex فعلی برای خروجی اکسل درست
-                var sortedColumns = new List<DataGridViewColumn>();
-                foreach (DataGridViewColumn col in this.Columns) sortedColumns.Add(col);
-                sortedColumns.Sort((a, b) => a.DisplayIndex.CompareTo(b.DisplayIndex));
+            dynamic application = Activator.CreateInstance(excelType);
+            dynamic workbook = application.Workbooks.Add();
+            dynamic activeSheet = workbook.ActiveSheet;
+            activeSheet.Name = "Sheet1";
 
-                // ۱. خروجی عنوان ستون‌ها
+            int excelColIndex = 1;
+
+            // مرتب‌سازی ستون‌ها بر اساس DisplayIndex فعلی برای خروجی اکسل درست
+            var sortedColumns = new List<DataGridViewColumn>();
+            foreach (DataGridViewColumn col in this.Columns) sortedColumns.Add(col);
+            sortedColumns.Sort((a, b) => a.DisplayIndex.CompareTo(b.DisplayIndex));
+
+            // ۱. خروجی عنوان ستون‌ها
+            for (int col = 0; col < sortedColumns.Count; col++)
+            {
+                if (sortedColumns[col].Visible)
+                {
+                    activeSheet.Cells[1, excelColIndex] = sortedColumns[col].HeaderText;
+                    excelColIndex++;
+                }
+            }
+
+            // ۲. خروجی مقادیر سلول‌ها
+            for (int row = 0; row < this.Rows.Count; row++)
+            {
+                if (this.Rows[row].IsNewRow) continue;
+
+                excelColIndex = 1;
                 for (int col = 0; col < sortedColumns.Count; col++)
                 {
                     if (sortedColumns[col].Visible)
                     {
-                        activeSheet.Cells[1, excelColIndex] = sortedColumns[col].HeaderText;
+                        var cellValue = this.Rows[row].Cells[sortedColumns[col].Index].Value;
+                        activeSheet.Cells[row + 2, excelColIndex] = cellValue?.ToString() ?? string.Empty;
                         excelColIndex++;
                     }
                 }
-
-                // ۲. خروجی مقادیر سلول‌ها
-                for (int row = 0; row < this.Rows.Count; row++)
-                {
-                    if (this.Rows[row].IsNewRow) continue;
-
-                    excelColIndex = 1;
-                    for (int col = 0; col < sortedColumns.Count; col++)
-                    {
-                        if (sortedColumns[col].Visible)
-                        {
-                            var cellValue = this.Rows[row].Cells[sortedColumns[col].Index].Value;
-                            activeSheet.Cells[row + 2, excelColIndex] = cellValue?.ToString() ?? string.Empty;
-                            excelColIndex++;
-                        }
-                    }
-                }
-
-                application.Visible = true;
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show("خطا در خروجی اکسل: " + ex.Message, "خطا", MessageBoxButtons.OK, MessageBoxIcon.Error,
-                    MessageBoxDefaultButton.Button1,
-                    MessageBoxOptions.RtlReading);
-            }
+
+            application.Visible = true;
         }
 
         #endregion

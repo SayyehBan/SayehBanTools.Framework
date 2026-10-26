@@ -45,13 +45,13 @@
 		<PackageReference Include="Dapper" Version="2.1.89" />
 		<PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.5.3" />
 		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.13" />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.12" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.13" />
 		<PackageReference Include="Microsoft.Office.Interop.Excel" Version="16.0.18925.20022" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="OllamaSharp" Version="5.5.0" />
 		<PackageReference Include="RabbitMQ.Client" Version="7.2.2" />
-		<PackageReference Include="RestSharp" Version="114.0.0" />
-		<PackageReference Include="StackExchange.Redis" Version="3.4.0" />
+		<PackageReference Include="RestSharp" Version="114.1.0" />
+		<PackageReference Include="StackExchange.Redis" Version="3.4.20" />
 		<PackageReference Include="System.IO.Abstractions" Version="22.3.0" />
 		<PackageReference Include="System.Reactive.Windows.Forms" Version="7.0.0" />
 	</ItemGroup>
