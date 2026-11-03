@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web;
 namespace SayehBanTools.Framework.Sender
 {
     /// <summary>
@@ -111,11 +111,12 @@ namespace SayehBanTools.Framework.Sender
         /// <param name="Message"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public static async Task<string> SendNormalFileAsync(string APILink, string APIKey, string FromNumber, IFormFile To,string Message)
+        public static async Task<string> SendNormalFileAsync(string APILink, string APIKey, string FromNumber, HttpPostedFileBase To, string Message)
         {
             try
             {
-                if (To == null || To.Length == 0)
+                // تغییر Length به ContentLength
+                if (To == null || To.ContentLength == 0)
                 {
                     throw new ArgumentException("File parameter cannot be null or empty.");
                 }
@@ -124,15 +125,16 @@ namespace SayehBanTools.Framework.Sender
                 {
                     // Create the HttpContent for the form to be posted.
                     var requestContent = new MultipartFormDataContent();
-                    // Updated line to handle potential null reference for 'FromNumber'
                     requestContent.Add(new StringContent(FromNumber ?? string.Empty), "sender");
-                    requestContent.Add(new StringContent(Message?? string.Empty), "message");
-                    requestContent.Add(new StreamContent(To.OpenReadStream()), "file", To.FileName);
+                    requestContent.Add(new StringContent(Message ?? string.Empty), "message");
+
+                    // تغییر OpenReadStream به InputStream
+                    requestContent.Add(new StreamContent(To.InputStream), "file", To.FileName);
+
                     requestContent.Add(new StringContent("ارسال به فایل"), "description[summary]");
                     requestContent.Add(new StringContent("1"), "description[count_recipient]");
 
                     // Set additional headers.
-
                     client.DefaultRequestHeaders.Add("Accept", "application/json");
                     client.DefaultRequestHeaders.Add("apikey", APIKey);
 
@@ -223,11 +225,12 @@ namespace SayehBanTools.Framework.Sender
         /// <param name="File"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public static async Task<string> SendPeerToPeerByFileAsync(string APILink, string APIKey, string FromNumber, IFormFile File)
+        public static async Task<string> SendPeerToPeerByFileAsync(string APILink, string APIKey, string FromNumber, HttpPostedFileBase File)
         {
             try
             {
-                if (File == null || File.Length == 0)
+                // تغییر Length به ContentLength
+                if (File == null || File.ContentLength == 0)
                 {
                     throw new ArgumentException("File parameter cannot be null or empty.");
                 }
@@ -237,12 +240,14 @@ namespace SayehBanTools.Framework.Sender
                     // Create the HttpContent for the form to be posted.
                     var requestContent = new MultipartFormDataContent();
                     requestContent.Add(new StringContent(FromNumber), "sender");
-                    requestContent.Add(new StreamContent(File.OpenReadStream()), "file", File.FileName);
+
+                    // تغییر OpenReadStream به InputStream
+                    requestContent.Add(new StreamContent(File.InputStream), "file", File.FileName);
+
                     requestContent.Add(new StringContent("ارسال به فایل"), "description[summary]");
                     requestContent.Add(new StringContent("1"), "description[count_recipient]");
 
                     // Set additional headers.
-
                     client.DefaultRequestHeaders.Add("Accept", "application/json");
                     client.DefaultRequestHeaders.Add("apikey", APIKey);
 

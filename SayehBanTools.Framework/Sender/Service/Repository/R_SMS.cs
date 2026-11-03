@@ -91,28 +91,17 @@ namespace SayehBanTools.Framework.Sender.Service.Repository
                 request.AddParameter("message", model.message ?? string.Empty);
                 request.AddParameter("send_time", model.send_time.ToString("yyyy-MM-dd HH:mm:ss"));
 
-                // اضافه کردن فایل‌ها
+                // اضافه کردن فایل‌ها (اصلاح شده برای HttpPostedFileBase)
                 if (model.files != null && model.files.Length > 0)
                 {
                     foreach (var file in model.files)
                     {
-                        if (file != null && file.Length > 0)
+                        if (file != null && file.ContentLength > 0)
                         {
-                            // خواندن کامل فایل (حل CA2022)
-                             var stream = file.OpenReadStream();
-                             var memoryStream = new MemoryStream();
-
-                            // خواندن کامل با loop (حل CA2022)
-                            var buffer = new byte[8192]; // 8KB buffer
-                            int bytesRead;
-                            while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                            {
-                                await memoryStream.WriteAsync(buffer, 0, bytesRead);
-                            }
-
+                            var memoryStream = new MemoryStream();
+                            await file.InputStream.CopyToAsync(memoryStream);
                             var fileBytes = memoryStream.ToArray();
 
-                            // اضافه کردن فایل با RestSharp (حل CS1061)
                             request.AddFile("files[]", fileBytes, file.FileName ?? "numbers.txt", file.ContentType ?? "text/plain");
                         }
                     }
@@ -160,28 +149,17 @@ namespace SayehBanTools.Framework.Sender.Service.Repository
                 request.AddParameter("message", model.message ?? string.Empty);
                 request.AddParameter("send_time", model.send_time.ToString("yyyy-MM-dd HH:mm:ss"));
 
-                // اضافه کردن فایل‌ها
+                // اضافه کردن فایل‌ها (اصلاح شده برای HttpPostedFileBase)
                 if (model.files != null && model.files.Length > 0)
                 {
                     foreach (var file in model.files)
                     {
-                        if (file != null && file.Length > 0)
+                        if (file != null && file.ContentLength > 0)
                         {
-                            // خواندن کامل فایل (حل CA2022)
-                             var stream = file.OpenReadStream();
-                             var memoryStream = new MemoryStream();
-
-                            // خواندن کامل با loop (حل CA2022)
-                            var buffer = new byte[8192]; // 8KB buffer
-                            int bytesRead;
-                            while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                            {
-                                await memoryStream.WriteAsync(buffer, 0, bytesRead);
-                            }
-
+                            var memoryStream = new MemoryStream();
+                            await file.InputStream.CopyToAsync(memoryStream);
                             var fileBytes = memoryStream.ToArray();
 
-                            // اضافه کردن فایل با RestSharp (حل CS1061)
                             request.AddFile("files[]", fileBytes, file.FileName ?? "numbers.txt", file.ContentType ?? "text/plain");
                         }
                     }
@@ -395,28 +373,17 @@ namespace SayehBanTools.Framework.Sender.Service.Repository
                 request.AddParameter("from_number", model.FromNumber ?? "+983000505");
                 request.AddParameter("send_time", model.send_time.ToString("yyyy-MM-dd HH:mm:ss"));
 
-                // اضافه کردن فایل‌ها
+                // اضافه کردن فایل‌ها (اصلاح شده برای HttpPostedFileBase)
                 if (model.files != null && model.files.Length > 0)
                 {
                     foreach (var file in model.files)
                     {
-                        if (file != null && file.Length > 0)
+                        if (file != null && file.ContentLength > 0)
                         {
-                            // خواندن کامل فایل (حل CA2022)
-                             var stream = file.OpenReadStream();
-                             var memoryStream = new MemoryStream();
-
-                            // خواندن کامل با loop (حل CA2022)
-                            var buffer = new byte[8192]; // 8KB buffer
-                            int bytesRead;
-                            while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                            {
-                                await memoryStream.WriteAsync(buffer, 0, bytesRead);
-                            }
-
+                            var memoryStream = new MemoryStream();
+                            await file.InputStream.CopyToAsync(memoryStream);
                             var fileBytes = memoryStream.ToArray();
 
-                            // اضافه کردن فایل با RestSharp (حل CS1061)
                             request.AddFile("files[]", fileBytes, file.FileName ?? "numbers.txt", file.ContentType ?? "text/plain");
                         }
                     }

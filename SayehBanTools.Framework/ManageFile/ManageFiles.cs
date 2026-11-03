@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using SayehBanTools.Framework.Converter;
+﻿using SayehBanTools.Framework.Converter;
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -8,8 +7,8 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Abstractions;
 using System.IO.Compression;
-using System.Linq;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace SayehBanTools.Framework.ManageFile
 {
@@ -48,7 +47,7 @@ namespace SayehBanTools.Framework.ManageFile
         /// <param name="basePath">مسیر پایه</param>
         /// <param name="file">فایل ورودی</param>
         /// <returns>مسیر فایل آپلودشده</returns>
-        public async Task<string> UploadFileAsync(string basePath, IFormFile file)
+        public async Task<string> UploadFileAsync(string basePath, HttpPostedFileBase file)
         {
             if (string.IsNullOrEmpty(basePath))
                 throw new ArgumentException("مسیر پایه نمی‌تواند خالی باشد.", nameof(basePath));
@@ -67,7 +66,8 @@ namespace SayehBanTools.Framework.ManageFile
 
             using (var stream = _fileSystem.FileStream.New(newFullPath, FileMode.Create, FileAccess.Write))
             {
-                await file.CopyToAsync(stream);
+                // جایگزینی CopyToAsync با InputStream.CopyToAsync
+                await file.InputStream.CopyToAsync(stream);
             }
 
             var newdirect = StringExtensions.RemoveDirectWWWROOT(newFullPath);
@@ -81,7 +81,7 @@ namespace SayehBanTools.Framework.ManageFile
         /// <param name="file">فایل ورودی</param>
         /// <param name="chunkSize">اندازه هر تکه (بایت)</param>
         /// <returns>مسیر فایل آپلودشده</returns>
-        public async Task<string> UploadFileChunkedAsync(string basePath, IFormFile file, int chunkSize = DefaultChunkSize)
+        public async Task<string> UploadFileChunkedAsync(string basePath, HttpPostedFileBase file, int chunkSize = DefaultChunkSize)
         {
             if (string.IsNullOrEmpty(basePath))
                 throw new ArgumentException("مسیر پایه نمی‌تواند خالی باشد.", nameof(basePath));
@@ -102,7 +102,6 @@ namespace SayehBanTools.Framework.ManageFile
             string tempMetadataPath;
             long uploadedBytes = 0;
 
-            // بررسی وجود متادیتا برای ادامه آپلود
             var metadataFiles = _fileSystem.Directory.GetFiles(basePath, "*.metadata");
             if (metadataFiles.Length > 0)
             {
@@ -117,7 +116,6 @@ namespace SayehBanTools.Framework.ManageFile
                 }
                 else
                 {
-                    // متادیتا نامعتبر است، حذف متادیتا و فایل مرتبط
                     var oldFileName = _fileSystem.Path.GetFileNameWithoutExtension(tempMetadataPath);
                     var oldFilePath = _fileSystem.Path.Combine(basePath, oldFileName);
                     if (_fileSystem.File.Exists(oldFilePath))
@@ -138,7 +136,6 @@ namespace SayehBanTools.Framework.ManageFile
                 tempMetadataPath = newFullPath + ".metadata";
             }
 
-            // حذف تمام فایل‌های متادیتا قدیمی
             foreach (var metadata in _fileSystem.Directory.GetFiles(basePath, "*.metadata"))
             {
                 if (metadata != tempMetadataPath)
@@ -147,7 +144,8 @@ namespace SayehBanTools.Framework.ManageFile
                 }
             }
 
-            using (var inputStream = file.OpenReadStream())
+            // دسترسی مستقیم به InputStream به جای OpenReadStream
+            using (var inputStream = file.InputStream)
             {
                 inputStream.Seek(uploadedBytes, SeekOrigin.Begin);
                 using (var outputStream = _fileSystem.FileStream.New(newFullPath, uploadedBytes == 0 ? FileMode.Create : FileMode.Append, FileAccess.Write))
@@ -163,7 +161,6 @@ namespace SayehBanTools.Framework.ManageFile
                 }
             }
 
-            // حذف فایل متادیتا پس از تکمیل آپلود
             if (_fileSystem.File.Exists(tempMetadataPath))
             {
                 _fileSystem.File.Delete(tempMetadataPath);

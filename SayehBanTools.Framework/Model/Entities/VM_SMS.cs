@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using System.Web;
 
 namespace SayehBanTools.Framework.Model.Entities
 {
@@ -129,7 +129,7 @@ namespace SayehBanTools.Framework.Model.Entities
             /// <summary>
             /// فایل شماره ها
             /// </summary>
-            public IFormFile[] files { get; set; } = null;
+            public HttpPostedFileBase[] files { get; set; } = null;
 
             /// <summary>
             /// زمان ارسال (فرمت: yyyy-MM-dd HH:mm:ss)
@@ -140,7 +140,7 @@ namespace SayehBanTools.Framework.Model.Entities
             /// </summary>
             public SendFileSMSParameters()
             {
-                files = Array.Empty<IFormFile>();
+                files = Array.Empty<HttpPostedFileBase>();
             }
         }
         /// <summary>
@@ -164,7 +164,7 @@ namespace SayehBanTools.Framework.Model.Entities
             /// <summary>
             /// فایل شماره ها
             /// </summary>
-            public IFormFile[] files { get; set; } = null;
+            public HttpPostedFileBase[] files { get; set; } = null;
             /// <summary>
             /// زمان ارسال (فرمت: yyyy-MM-dd HH:mm:ss)
             /// </summary>
@@ -174,7 +174,7 @@ namespace SayehBanTools.Framework.Model.Entities
             /// </summary>
             public SendKeywordSMSParameters()
             {
-                files = Array.Empty<IFormFile>();
+                files = Array.Empty<HttpPostedFileBase>();
             }
         }
         /// <summary>
@@ -316,7 +316,7 @@ namespace SayehBanTools.Framework.Model.Entities
             /// <summary>
             /// فایل شماره ها
             /// </summary>
-            public IFormFile[] files { get; set; } = null;
+            public HttpPostedFileBase[] files { get; set; } = null;
         }
     }
 }

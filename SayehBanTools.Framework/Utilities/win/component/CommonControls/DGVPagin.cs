@@ -182,10 +182,10 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 Font = new Font("Tahoma", 8.5F, FontStyle.Regular)
             };
 
-            _cmbPageSize = new ComboBox
+            _cmbPageSize = new cmbbox
             {
                 Cursor = Cursors.Hand,
-                DropDownStyle = ComboBoxStyle.DropDownList,
+                DropDownStyle = ComboBoxStyle.DropDown,
                 Width = 65,
                 Location = new Point(220, 7),
                 Font = new Font("Tahoma", 8.5F, FontStyle.Regular)
