@@ -24,7 +24,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int GetWindowTextLength(IntPtr hWnd);
 
-        private string RawText
+        public string RawText
         {
             get
             {
@@ -35,6 +35,101 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 GetWindowText(Handle, sb, sb.Capacity);
                 return sb.ToString();
             }
+        }
+
+        /// <summary>
+        /// باگ WinForms: بعد از عوض شدن DataSource (مثلاً نتیجه جستجوی خالی) ممکن است ایندکس انتخاب در کنترل
+        /// ویندوز (native) هنوز 0 باشد در حالی که لیست آیتم‌ها خالی است؛ آن‌وقت خواندن Text در پیام‌های ماوس
+        /// خطای ArgumentOutOfRangeException می‌دهد و برنامه کرش می‌کند. در این حالت متن خام را برمی‌گردانیم.
+        /// </summary>
+        public override string Text
+        {
+            get
+            {
+                try { return base.Text; }
+                catch (ArgumentOutOfRangeException)
+                {
+                    ResetNativeSelection();
+                    return RawText;
+                }
+            }
+            set { base.Text = value; }
+        }
+
+        /// <summary>
+        /// آیتم انتخاب شده به صورت امن (در صورت ناهماهنگی ایندکس، null برمی‌گرداند)
+        /// </summary>
+        [System.ComponentModel.Browsable(false)]
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public object SafeSelectedItem
+        {
+            get
+            {
+                try
+                {
+                    int index = SelectedIndex;
+                    return (index >= 0 && index < Items.Count) ? Items[index] : null;
+                }
+                catch { return null; }
+            }
+        }
+
+        /// <summary>
+        /// انتخاب معتبر است فقط اگر: آیتمی انتخاب شده باشد، مقدار داشته باشد و
+        /// متن تایپ‌شده دقیقاً با متن همان آیتم یکی باشد.
+        /// (بعد از جستجو، کنترل خودکار اولین نتیجه را انتخاب می‌کند؛ پس متن ناقص یا اشتباه
+        /// بدون این بررسی، اولین کالای لیست را به اشتباه ذخیره می‌کرد)
+        /// </summary>
+        public bool HasValidSelection()
+        {
+            try
+            {
+                object item = SafeSelectedItem;
+                if (item == null || SelectedValue == null) return false;
+
+                string typed = (RawText ?? string.Empty).Trim();
+                string itemText = (GetItemText(item) ?? string.Empty).Trim();
+                return typed.Length > 0 && string.Equals(typed, itemText, StringComparison.Ordinal);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private const int CB_SETCURSEL = 0x014E;
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+        private void ResetNativeSelection()
+        {
+            try
+            {
+                if (IsHandleCreated) SendMessage(Handle, CB_SETCURSEL, (IntPtr)(-1), IntPtr.Zero);
+            }
+            catch { }
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            try
+            {
+                base.WndProc(ref m);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // همان ناهماهنگی ایندکس native/managed در پیام‌های دیگر (مثلاً SelectedItem)؛ کرش نکند
+                ResetNativeSelection();
+            }
+        }
+
+        protected override void OnDataSourceChanged(EventArgs e)
+        {
+            // اگر فرم از بیرون DataSource را عوض کرد (ریست فرم، انتخاب از گرید)،
+            // کلمه جستجوی قبلی فراموش شود تا تایپ دوباره همان متن، جستجو را اجرا کند
+            if (!_isUpdatingText) _lastKeyword = string.Empty;
+            base.OnDataSourceChanged(e);
         }
 
         #endregion
@@ -196,12 +291,15 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                     string savedValueMember = this.ValueMember;
 
                     ClearImageCache();
+
+                    // بستن لیست باز و پاک کردن ایندکس native قبل از تعویض دیتاسورس (جلوگیری از ایندکس قدیمی)
+                    if (this.DroppedDown) this.DroppedDown = false;
+                    ResetNativeSelection();
+
+                    // با نال کردن دیتاسورس، DisplayMember در پس‌زمینه پاک می‌شود
                     this.DataSource = null;
 
-                    this.DisplayMember = savedDisplayMember;
-                    this.ValueMember = savedValueMember;
-
-                    // --- تبدیل لیست object به آرایه داینامیک از نوع واقعی کلاس (ترفند حل باگ WinForms) ---
+                    // --- تبدیل لیست object به آرایه داینامیک از نوع واقعی کلاس ---
                     var resultsList = new List<object>(results);
                     if (resultsList.Count > 0)
                     {
@@ -216,8 +314,16 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                     else
                     {
                         this.DataSource = resultsList;
+                        ResetNativeSelection();
                     }
-                    // --------------------------------------------------------------------------------------
+                    // -------------------------------------------------------------
+
+                    // 🔴 بازگرداندن DisplayMember و ValueMember 'بعد' از مقداردهی دیتاسورس
+                    if (!string.IsNullOrEmpty(savedDisplayMember))
+                        this.DisplayMember = savedDisplayMember;
+
+                    if (!string.IsNullOrEmpty(savedValueMember))
+                        this.ValueMember = savedValueMember;
 
                     this.Text = currentText;
 
