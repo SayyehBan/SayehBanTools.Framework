@@ -15,9 +15,46 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         private Button btnRemove;
         private ToolTip toolTip;
 
+        /// <summary>
+        /// تصویر کنترل. با هر بار مقداردهی (حتی مستقیم از فرم مثل <c>PicBox.Image = ...</c>)
+        /// دکمه ضربدر حذف خودکار نمایش داده یا مخفی می‌شود.
+        /// (قبلاً فقط SetImageFromBytes و دابل‌کلیک ضربدر را نشان می‌دادند)
+        /// </summary>
+        [System.ComponentModel.Localizable(true)]
+        public new Image Image
+        {
+            get { return base.Image; }
+            set
+            {
+                // تصویری که مستقیم ست می‌شود بایت/مسیر قبلی را بی‌اعتبار می‌کند
+                RawImageBytes = null;
+                ImagePath = null;
+                SetImageInternal(value);
+            }
+        }
+
+        private void SetImageInternal(Image value)
+        {
+            base.Image = value;
+            UpdateRemoveButton();
+        }
+
+        private void UpdateRemoveButton()
+        {
+            if (btnRemove == null) return;
+            bool hasImage = base.Image != null;
+            if (btnRemove.Visible != hasImage) btnRemove.Visible = hasImage;
+            if (hasImage)
+            {
+                UpdateBtnPosition();
+                btnRemove.BringToFront();
+            }
+        }
+
         public PicBox()
         {
-            this.SizeMode = PictureBoxSizeMode.Zoom;
+            // نمایش کشیده (پر کردن کامل کادر) به‌صورت پیش‌فرض
+            this.SizeMode = PictureBoxSizeMode.StretchImage;
             this.BorderStyle = BorderStyle.Fixed3D;
             this.Cursor = Cursors.Hand;
 
@@ -38,6 +75,24 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             toolTip.SetToolTip(btnRemove, "حذف");
 
             this.Controls.Add(btnRemove);
+            UpdateBtnPosition();
+        }
+
+        // اگر تصویر از مسیری غیر از خاصیت Image این کلاس عوض شده باشد (مثلاً از طریق مرجع PictureBox)،
+        // وضعیت ضربدر هنگام رسم هماهنگ می‌شود
+        protected override void OnPaint(PaintEventArgs pe)
+        {
+            base.OnPaint(pe);
+            if (btnRemove != null && btnRemove.Visible != (base.Image != null))
+            {
+                BeginInvoke((Action)UpdateRemoveButton);
+            }
+        }
+
+        protected override void OnParentChanged(EventArgs e)
+        {
+            base.OnParentChanged(e);
+            UpdateBtnPosition();
         }
 
         // رویداد کلیک دکمه ضربدر
@@ -49,14 +104,14 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         // متد پاکسازی تصویر و ریست متغیرها
         public void ClearImage()
         {
-            if (this.Image != null)
-            {
-                this.Image.Dispose();
-            }
-            this.Image = null;
+            Image old = base.Image;
             this.RawImageBytes = null;
             this.ImagePath = null;
-            btnRemove.Visible = false;
+            SetImageInternal(null);
+            if (old != null)
+            {
+                old.Dispose();
+            }
         }
 
         // بروزرسانی موقعیت دکمه با تغییر سایز کنترل
@@ -75,6 +130,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 
         private void UpdateBtnPosition()
         {
+            if (btnRemove == null) return;
             if (this.RightToLeft == RightToLeft.Yes)
             {
                 btnRemove.Location = new Point(0, 0); // چپ
@@ -94,15 +150,14 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             {
                 try
                 {
+                    Image old = base.Image;
+                    // کپی Bitmap تا تصویر به MemoryStream بسته‌شده وابسته نماند
                     using (MemoryStream ms = new MemoryStream(imageBytes))
+                    using (Image loaded = System.Drawing.Image.FromStream(ms))
                     {
-                        if (this.Image != null)
-                        {
-                            this.Image.Dispose();
-                        }
-                        this.Image = Image.FromStream(ms);
-                        btnRemove.Visible = true; // نمایش ضربدر
+                        SetImageInternal(new Bitmap(loaded)); // نمایش ضربدر
                     }
+                    if (old != null) old.Dispose();
                 }
                 catch (Exception ex)
                 {
@@ -122,7 +177,22 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             {
                 return File.ReadAllBytes(ImagePath);
             }
-            return RawImageBytes;
+            if (RawImageBytes != null) return RawImageBytes;
+
+            // تصویری که مستقیم با خاصیت Image ست شده: به PNG تبدیل می‌شود
+            if (base.Image == null) return null;
+            try
+            {
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    base.Image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    return ms.ToArray();
+                }
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         protected override void OnDoubleClick(EventArgs e)
@@ -144,18 +214,15 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                     {
                         byte[] fileBytes = File.ReadAllBytes(dialog.FileName);
 
+                        Image old = base.Image;
                         using (MemoryStream ms = new MemoryStream(fileBytes))
+                        using (Image loaded = System.Drawing.Image.FromStream(ms))
                         {
-                            if (this.Image != null)
-                            {
-                                this.Image.Dispose();
-                            }
-
-                            this.Image = Image.FromStream(ms);
-                            this.ImagePath = dialog.FileName;
-                            this.RawImageBytes = fileBytes;
-                            btnRemove.Visible = true; // نمایش ضربدر
+                            SetImageInternal(new Bitmap(loaded)); // نمایش ضربدر
                         }
+                        if (old != null) old.Dispose();
+                        this.ImagePath = dialog.FileName;
+                        this.RawImageBytes = fileBytes;
                     }
                     catch (Exception ex)
                     {
