@@ -24,7 +24,7 @@ namespace SayehBanTools.Framework.Sender.Service.Repository
         {
             var options = new RestClientOptions(model.BaseUrl);
             var client = new RestClient(options);
-            var request = new RestRequest($"{model.Api}?number={model.number}&message={model.message}", Method.Post);
+            var request = new RestRequest($"{model.ApiLink}?number={model.number}&message={model.message}", Method.Post);
             request.AddHeader("Authorization", model.API_Key);
 
             RestResponse response = await client.ExecuteAsync(request);
@@ -50,7 +50,7 @@ namespace SayehBanTools.Framework.Sender.Service.Repository
         {
             var options = new RestClientOptions(model.BaseUrl);
             var client = new RestClient(options);
-            var request = new RestRequest(model.Api, Method.Get);
+            var request = new RestRequest(model.ApiLink, Method.Get);
             request.AddHeader("Authorization", model.API_Key);
 
             RestResponse response = await client.ExecuteAsync(request);
@@ -80,7 +80,7 @@ namespace SayehBanTools.Framework.Sender.Service.Repository
 
                 var options = new RestClientOptions(model.BaseUrl);
                 var client = new RestClient(options);
-                var request = new RestRequest(model.Api, Method.Post);
+                var request = new RestRequest(model.ApiLink, Method.Post);
 
                 request.AddHeader("Authorization", model.API_Key);
                 request.AlwaysMultipartFormData = true;
@@ -138,7 +138,7 @@ namespace SayehBanTools.Framework.Sender.Service.Repository
 
                 var options = new RestClientOptions(model.BaseUrl);
                 var client = new RestClient(options);
-                var request = new RestRequest(model.Api, Method.Post);
+                var request = new RestRequest(model.ApiLink, Method.Post);
 
                 request.AddHeader("Authorization", model.API_Key);
                 request.AlwaysMultipartFormData = true;
@@ -195,7 +195,7 @@ namespace SayehBanTools.Framework.Sender.Service.Repository
 
                 var options = new RestClientOptions(model.BaseUrl);
                 var client = new RestClient(options);
-                var request = new RestRequest(model.Api, Method.Post);
+                var request = new RestRequest(model.ApiLink, Method.Post);
                 request.AddHeader("Authorization", model.API_Key);
 
                 // تنظیم JSON options برای فارسی و فرمت صحیح
@@ -251,7 +251,7 @@ namespace SayehBanTools.Framework.Sender.Service.Repository
 
                 var options = new RestClientOptions(model.BaseUrl);
                 var client = new RestClient(options);
-                var request = new RestRequest(model.Api, Method.Post);
+                var request = new RestRequest(model.ApiLink, Method.Post);
                 request.AddHeader("Authorization", model.API_Key);
 
                 // تنظیم JSON options برای فارسی
@@ -313,7 +313,7 @@ namespace SayehBanTools.Framework.Sender.Service.Repository
 
                 var options = new RestClientOptions(model.BaseUrl);
                 var client = new RestClient(options);
-                var request = new RestRequest(model.Api, Method.Post);
+                var request = new RestRequest(model.ApiLink, Method.Post);
                 request.AddHeader("Authorization", model.API_Key);
 
                 // تنظیم JSON options برای فارسی
@@ -363,7 +363,7 @@ namespace SayehBanTools.Framework.Sender.Service.Repository
 
                 var options = new RestClientOptions(model.BaseUrl);
                 var client = new RestClient(options);
-                var request = new RestRequest(model.Api, Method.Post);
+                var request = new RestRequest(model.ApiLink, Method.Post);
 
                 request.AddHeader("Authorization", model.API_Key);
                 request.AlwaysMultipartFormData = true;

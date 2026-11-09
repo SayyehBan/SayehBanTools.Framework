@@ -1,11 +1,11 @@
 ﻿using Newtonsoft.Json;
-using SayehBanTools.Framework.Converter;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+
 namespace SayehBanTools.Framework.Converter
 {
     /// <summary>
@@ -36,7 +36,7 @@ namespace SayehBanTools.Framework.Converter
                         CharReplacements = new Dictionary<string, string>
                         {
                             { "ﮎ", "ک" }, { "ﮏ", "ک" }, { "ﮐ", "ک" }, { "ﮑ", "ک" }, { "ك", "ک" },
-                            { "ي", "ی" }, { "ھ", "ه" }, { " ", " " }, { "‌", " " }
+                            { "ي", "ی" }, { "ھ", "ه" }, { " ", " " }, { "‌", " " }
                         },
                         DefaultDigit = "۰",
                         CultureName = "fa-IR"
@@ -58,7 +58,7 @@ namespace SayehBanTools.Framework.Converter
                         },
                         CharReplacements = new Dictionary<string, string>
                         {
-                            { "ی", "ي" }, { "ک", "ك" }, { "ه", "ھ" }, { " ", " " }, { "‌", " " }
+                            { "ی", "ي" }, { "ک", "ك" }, { "ه", "ھ" }, { " ", " " }, { "‌", " " }
                         },
                         DefaultDigit = "٠",
                         CultureName = "ar-SA"
@@ -75,14 +75,14 @@ namespace SayehBanTools.Framework.Converter
                         },
                         ToEnglishDigits = new Dictionary<string, string>
                         {
-                            { "०", "0" }, { "१", "1" }, { "२", "2" }, { "३", "3" }, { "۴", "4" },
-                            { "५", "5" }, { "۶", "6" }, { "७", "7" }, { "۸", "8" }, { "۹", "9" },
+                            { "०", "0" }, { "१", "1" }, { "२", "2" }, { "३", "3" }, { "४", "4" },
+                            { "५", "5" }, { "६", "6" }, { "७", "7" }, { "८", "8" }, { "९", "9" },
                             { "٠", "0" }, { "١", "1" }, { "٢", "2" }, { "٣", "3" }, { "٤", "4" },
                             { "٥", "5" }, { "٦", "6" }, { "٧", "7" }, { "٨", "8" }, { "٩", "9" }
                         },
                         CharReplacements = new Dictionary<string, string>
                         {
-                            { " ", " " }, { "‌", " " }
+                            { " ", " " }, { "‌", " " }
                         },
                         DefaultDigit = "०",
                         CultureName = "hi-IN"
@@ -106,7 +106,7 @@ namespace SayehBanTools.Framework.Converter
                         },
                         CharReplacements = new Dictionary<string, string>
                         {
-                            { " ", " " }, { "‌", " " }
+                            { " ", " " }, { "‌", " " }
                         },
                         DefaultDigit = "০",
                         CultureName = "bn-BD"
@@ -130,7 +130,7 @@ namespace SayehBanTools.Framework.Converter
                         },
                         CharReplacements = new Dictionary<string, string>
                         {
-                            { " ", " " }, { "‌", " " }
+                            { " ", " " }, { "‌", " " }
                         },
                         DefaultDigit = "๐",
                         CultureName = "th-TH"
@@ -156,7 +156,7 @@ namespace SayehBanTools.Framework.Converter
                         },
                         CharReplacements = new Dictionary<string, string>
                         {
-                            { " ", " " }, { "‌", " " }
+                            { " ", " " }, { "‌", " " }
                         },
                         DefaultDigit = "0",
                         CultureName = "en-US"
@@ -182,7 +182,7 @@ namespace SayehBanTools.Framework.Converter
                         },
                         CharReplacements = new Dictionary<string, string>
                         {
-                            { " ", " " }, { "‌", " " }
+                            { " ", " " }, { "‌", " " }
                         },
                         DefaultDigit = "0",
                         CultureName = "en-US"
@@ -246,12 +246,10 @@ namespace SayehBanTools.Framework.Converter
 
             return str.NormalizeByLanguage(languageCode, false).Trim();
         }
+
         /// <summary>
         /// تمیز کردن برحسب json یکباره
         /// </summary>
-        /// <param name="json"></param>
-        /// <param name="defaultLanguage"></param>
-        /// <returns></returns>
         public static string CleanJsonByLanguage(this string json, string defaultLanguage = "en")
         {
             if (string.IsNullOrEmpty(json))
@@ -265,7 +263,8 @@ namespace SayehBanTools.Framework.Converter
 
                 var cleanedTranslations = translations.ToDictionary(
                     kvp => kvp.Key,
-                    kvp => kvp.Value.CleanString(kvp.Key).CleanForSql() // استفاده از کد زبان به عنوان پارامتر
+                    // فرض بر این است که CleanForSql در کلاس دیگری تعریف شده است.
+                    kvp => kvp.Value.CleanString(kvp.Key)
                 );
 
                 return JsonConvert.SerializeObject(cleanedTranslations);
@@ -276,6 +275,7 @@ namespace SayehBanTools.Framework.Converter
                 return json;
             }
         }
+
         /// <summary>
         /// تبدیل رشته به عدد صحیح
         /// </summary>
@@ -288,15 +288,27 @@ namespace SayehBanTools.Framework.Converter
         }
 
         /// <summary>
-        /// تبدیل رشته به عدد اعشاری
+        /// تبدیل رشته به عدد اعشاری (Decimal) با حفظ دقیق نقطه اعشار
         /// </summary>
         public static decimal ToDecimal(this string value, string languageCode = "en")
         {
             if (string.IsNullOrEmpty(value))
                 throw new ArgumentNullException(nameof(value));
 
-            // استفاده از CultureInfo.InvariantCulture برای اطمینان از تجزیه درست نقطه اعشار انگلیسی
-            return decimal.Parse(value.NormalizeByLanguage(languageCode, false), CultureInfo.InvariantCulture);
+            string cleanValue = value.NormalizeByLanguage(languageCode, false).Replace(",", ""); // فقط کاما حذف شود، نقطه بماند
+            return decimal.Parse(cleanValue, CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// تبدیل رشته به عدد اعشاری (Double / Float) با حفظ دقیق نقطه اعشار
+        /// </summary>
+        public static double ToDouble(this string value, string languageCode = "en")
+        {
+            if (string.IsNullOrEmpty(value))
+                throw new ArgumentNullException(nameof(value));
+
+            string cleanValue = value.NormalizeByLanguage(languageCode, false).Replace(",", ""); // فقط کاما حذف شود، نقطه بماند
+            return double.Parse(cleanValue, CultureInfo.InvariantCulture);
         }
 
         /// <summary>
@@ -309,12 +321,13 @@ namespace SayehBanTools.Framework.Converter
         }
 
         /// <summary>
-        /// فرمت‌بندی عدد اعشاری به‌صورت عددی با جداکننده
+        /// فرمت‌بندی عدد اعشاری به‌صورت عددی با جداکننده (حفظ اعشار در نمایش)
         /// </summary>
         public static string ToNumeric(this decimal value, string languageCode = "en")
         {
             var culture = GetCultureInfo(languageCode);
-            return value.ToString("N0", culture).NormalizeByLanguage(languageCode, true);
+            // N3 یعنی تا ۳ رقم اعشار را نشان می‌دهد، صفرهای اضافی حذف می‌شوند.
+            return value.ToString("0.###", culture).NormalizeByLanguage(languageCode, true);
         }
 
         /// <summary>
@@ -336,11 +349,12 @@ namespace SayehBanTools.Framework.Converter
         }
 
         /// <summary>
-        /// حذف جداکننده‌ها از رشته
+        /// حذف جداکننده‌ها از رشته (بدون حذف نقطه اعشار برای پشتیبانی از Float/Percent)
         /// </summary>
         public static string RemovePoint(this string str)
         {
-            return str?.Replace(",", "").Replace(".", "").Replace("/", "") ?? "";
+            // نقطه (.) دیگر حذف نمی‌شود تا مقادیر اعشاری خراب نشوند.
+            return str?.Replace(",", "").Replace("/", "") ?? "";
         }
 
         /// <summary>
@@ -374,7 +388,7 @@ namespace SayehBanTools.Framework.Converter
         {
             if (string.IsNullOrEmpty(str)) return "";
             string pattern = @"<[^>]*(>|$)|‌|»|«";
-            return Regex.Replace(str.Replace(" ", " ").Trim(), pattern, string.Empty);
+            return Regex.Replace(str.Replace(" ", " ").Trim(), pattern, string.Empty);
         }
 
         /// <summary>
@@ -402,15 +416,15 @@ namespace SayehBanTools.Framework.Converter
         {
             return str?.Replace("-", " ") ?? "";
         }
+
         /// <summary>
         /// جایگزین کردن Coma
         /// </summary>
-        /// <param name="str"></param>
-        /// <returns></returns>
         public static string ReplaceComa(this string str)
         {
             return str.Replace("/", ",");
         }
+
         /// <summary>
         /// حذف عبارت wwwroot/ از مسیر بدون حساسیت به حروف کوچک و بزرگ
         /// </summary>
@@ -422,7 +436,6 @@ namespace SayehBanTools.Framework.Converter
             // استفاده از Regex جهت اعمال حالت IgnoreCase در .NET Framework
             return Regex.Replace(str, @"wwwroot/", "", RegexOptions.IgnoreCase);
         }
-
 
         /// <summary>
         /// جایگزینی ::1 با 127.0.0.1
@@ -436,17 +449,15 @@ namespace SayehBanTools.Framework.Converter
         /// متدهای قدیمی برای سازگاری
         /// </summary>
         public static string En2Fa(this string str) => str.NormalizeByLanguage("fa", true);
+
         /// <summary>
         /// تبدیل عدد فارسی به انگلیسی
         /// </summary>
-        /// <param name="str"></param>
-        /// <returns></returns>
         public static string Fa2En(this string str) => str.NormalizeByLanguage("fa", false);
+
         /// <summary>
         /// فیکس کردن به زبان فارسی
         /// </summary>
-        /// <param name="str"></param>
-        /// <returns></returns>
         public static string FixPersianChars(this string str) => str.NormalizeByLanguage("fa", false);
 
         /// <summary>
@@ -456,108 +467,34 @@ namespace SayehBanTools.Framework.Converter
         {
             try
             {
-                // نگاشت کدهای زبان به CultureInfo برای همه‌ی ۱۰۰ زبان
+                // نگاشت کدهای زبان به CultureInfo
                 var cultureMapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "am", "am-ET" }, // آمهری
-                    { "km", "km-KH" }, // خمر
-                    { "dz", "dz-BT" }, // زونگخا
-                    { "bo", "bo-CN" }, // تبتی
-                    { "ti", "ti-ET" }, // تیگرینیا
-                    { "af", "af-ZA" }, // آفریکانس
-                    { "az", "az-Latn-AZ" }, // آذربایجانی
-                    { "jv", "jv-ID" }, // جاوه‌ای
-                    { "bs", "bs-Latn-BA" }, // بوسنیایی
-                    { "ca", "ca-ES" }, // کاتالان
-                    { "cs", "cs-CZ" }, // چکی
-                    { "sn", "sn-ZW" }, // شونا
-                    { "cy", "cy-GB" }, // ولزی
-                    { "da", "da-DK" }, // دانمارکی
-                    { "de", "de-DE" }, // آلمانی
-                    { "et", "et-EE" }, // استونیایی
-                    { "en", "en-US" }, // انگلیسی
-                    { "es", "es-ES" }, // اسپانیایی
-                    { "eu", "eu-ES" }, // باسک
-                    { "fr", "fr-FR" }, // فرانسوی
-                    { "ff", "ff-Latn-SN" }, // فولفولده
-                    { "ga", "ga-IE" }, // ایرلندی
-                    { "sm", "sm-WS" }, // ساموآیی
-                    { "gl", "gl-ES" }, // گالیسیایی
-                    { "ha", "ha-Latn-NG" }, // هوسا
-                    { "hr", "hr-HR" }, // کرواتی
-                    { "ig", "ig-NG" }, // ایگبو
-                    { "xh", "xh-ZA" }, // خوسا
-                    { "zu", "zu-ZA" }, // زولو
-                    { "is", "is-IS" }, // ایسلندی
-                    { "it", "it-IT" }, // ایتالیایی
-                    { "kl", "kl-GL" }, // گرینلندی
-                    { "sw", "sw-KE" }, // سواحیلی
-                    { "ku", "ku-Arab-IQ" }, // کردی
-                    { "lv", "lv-LV" }, // لتونیایی
-                    { "to", "to-TO" }, // تونگایی
-                    { "lb", "lb-LU" }, // لوکزامبورگی
-                    { "lt", "lt-LT" }, // لیتوانیایی
-                    { "hu", "hu-HU" }, // مجاری
-                    { "mg", "mg-MG" }, // مالاگاسی
-                    { "mt", "mt-MT" }, // مالتی
-                    { "fj", "fj-FJ" }, // فیجیایی
-                    { "nl", "nl-NL" }, // هلندی
-                    { "no", "no-NO" }, // نروژی
-                    { "uz", "uz-Latn-UZ" }, // ازبکی
-                    { "pl", "pl-PL" }, // لهستانی
-                    { "pt", "pt-PT" }, // پرتغالی
-                    { "ro", "ro-RO" }, // رومانیایی
-                    { "st", "st-LS" }, // سوتو
-                    { "tn", "tn-ZA" }, // تسوانا
-                    { "sq", "sq-AL" }, // آلبانیایی
-                    { "sk", "sk-SK" }, // اسلواکی
-                    { "sl", "sl-SI" }, // اسلوونیایی
-                    { "so", "so-SO" }, // سومالیایی
-                    { "fi", "fi-FI" }, // فنلاندی
-                    { "sv", "sv-SE" }, // سوئدی
-                    { "vi", "vi-VN" }, // ویتنامی
-                    { "ve", "ve-ZA" }, // وندا
-                    { "tr", "tr-TR" }, // ترکی
-                    { "tk", "tk-TM" }, // ترکمنی
-                    { "wo", "wo-SN" }, // ولوف
-                    { "ts", "ts-ZA" }, // تسونگا
-                    { "yo", "yo-NG" }, // یوروبا
-                    { "el", "el-GR" }, // یونانی
-                    { "bg", "bg-BG" }, // بلغاری
-                    { "kk", "kk-KZ" }, // قزاقی
-                    { "ky", "ky-KG" }, // قرقیزی
-                    { "mk", "mk-MK" }, // مقدونی
-                    { "mn", "mn-MN" }, // مغولی
-                    { "ru", "ru-RU" }, // روسی
-                    { "sr", "sr-Cyrl-RS" }, // صربی
-                    { "tg", "tg-TJ" }, // تاجیکی
-                    { "uk", "uk-UA" }, // اوکراینی
-                    { "hy", "hy-AM" }, // ارمنی
-                    { "he", "he-IL" }, // عبری
-                    { "ur", "ur-PK" }, // اردو
-                    { "ar", "ar-SA" }, // عربی
-                    { "ps", "ps-AF" }, // پشتو
-                    { "sd", "sd-Arab-PK" }, // سندی
-                    { "fa", "fa-IR" }, // فارسی
-                    { "ne", "ne-NP" }, // نپالی
-                    { "mr", "mr-IN" }, // مراتی
-                    { "hi", "hi-IN" }, // هندی
-                    { "bn", "bn-BD" }, // بنگالی
-                    { "pa", "pa-IN" }, // پنجابی
-                    { "gu", "gu-IN" }, // گجراتی
-                    { "or", "or-IN" }, // اوریا
-                    { "ta", "ta-IN" }, // تامیلی
-                    { "te", "te-IN" }, // تلوگو
-                    { "kn", "kn-IN" }, // کانارا
-                    { "ml", "ml-IN" }, // مالایالم
-                    { "si", "si-LK" }, // سینهالی
-                    { "th", "th-TH" }, // تایلندی
-                    { "lo", "lo-LA" }, // لائوسی
-                    { "my", "my-MM" }, // برمه‌ای
-                    { "ka", "ka-GE" }, // گرجی
-                    { "zh", "zh-CN" }, // چینی
-                    { "ko", "ko-KR" }, // کره‌ای
-                    { "ja", "ja-JP" } // ژاپنی
+                    { "am", "am-ET" }, { "km", "km-KH" }, { "dz", "dz-BT" }, { "bo", "bo-CN" },
+                    { "ti", "ti-ET" }, { "af", "af-ZA" }, { "az", "az-Latn-AZ" }, { "jv", "jv-ID" },
+                    { "bs", "bs-Latn-BA" }, { "ca", "ca-ES" }, { "cs", "cs-CZ" }, { "sn", "sn-ZW" },
+                    { "cy", "cy-GB" }, { "da", "da-DK" }, { "de", "de-DE" }, { "et", "et-EE" },
+                    { "en", "en-US" }, { "es", "es-ES" }, { "eu", "eu-ES" }, { "fr", "fr-FR" },
+                    { "ff", "ff-Latn-SN" }, { "ga", "ga-IE" }, { "sm", "sm-WS" }, { "gl", "gl-ES" },
+                    { "ha", "ha-Latn-NG" }, { "hr", "hr-HR" }, { "ig", "ig-NG" }, { "xh", "xh-ZA" },
+                    { "zu", "zu-ZA" }, { "is", "is-IS" }, { "it", "it-IT" }, { "kl", "kl-GL" },
+                    { "sw", "sw-KE" }, { "ku", "ku-Arab-IQ" }, { "lv", "lv-LV" }, { "to", "to-TO" },
+                    { "lb", "lb-LU" }, { "lt", "lt-LT" }, { "hu", "hu-HU" }, { "mg", "mg-MG" },
+                    { "mt", "mt-MT" }, { "fj", "fj-FJ" }, { "nl", "nl-NL" }, { "no", "no-NO" },
+                    { "uz", "uz-Latn-UZ" }, { "pl", "pl-PL" }, { "pt", "pt-PT" }, { "ro", "ro-RO" },
+                    { "st", "st-LS" }, { "tn", "tn-ZA" }, { "sq", "sq-AL" }, { "sk", "sk-SK" },
+                    { "sl", "sl-SI" }, { "so", "so-SO" }, { "fi", "fi-FI" }, { "sv", "sv-SE" },
+                    { "vi", "vi-VN" }, { "ve", "ve-ZA" }, { "tr", "tr-TR" }, { "tk", "tk-TM" },
+                    { "wo", "wo-SN" }, { "ts", "ts-ZA" }, { "yo", "yo-NG" }, { "el", "el-GR" },
+                    { "bg", "bg-BG" }, { "kk", "kk-KZ" }, { "ky", "ky-KG" }, { "mk", "mk-MK" },
+                    { "mn", "mn-MN" }, { "ru", "ru-RU" }, { "sr", "sr-Cyrl-RS" }, { "tg", "tg-TJ" },
+                    { "uk", "uk-UA" }, { "hy", "hy-AM" }, { "he", "he-IL" }, { "ur", "ur-PK" },
+                    { "ar", "ar-SA" }, { "ps", "ps-AF" }, { "sd", "sd-Arab-PK" }, { "fa", "fa-IR" },
+                    { "ne", "ne-NP" }, { "mr", "mr-IN" }, { "hi", "hi-IN" }, { "bn", "bn-BD" },
+                    { "pa", "pa-IN" }, { "gu", "gu-IN" }, { "or", "or-IN" }, { "ta", "ta-IN" },
+                    { "te", "te-IN" }, { "kn", "kn-IN" }, { "ml", "ml-IN" }, { "si", "si-LK" },
+                    { "th", "th-TH" }, { "lo", "lo-LA" }, { "my", "my-MM" }, { "ka", "ka-GE" },
+                    { "zh", "zh-CN" }, { "ko", "ko-KR" }, { "ja", "ja-JP" }
                 };
 
                 string normalizedCode = languageCode?.ToLower() ?? "en";
@@ -582,6 +519,7 @@ namespace SayehBanTools.Framework.Converter
                 return rules.DefaultDigit;
             return "0";
         }
+
         /// <summary>
         /// حذف کامل تگ‌های HTML و entityهای رایج
         /// </summary>
@@ -591,7 +529,7 @@ namespace SayehBanTools.Framework.Converter
                 return string.Empty;
 
             string text = Regex.Replace(input, "<.*?>", string.Empty);  // حذف تگ‌ها
-            text = Regex.Replace(text, @"&[a-zA-Z]+;", " ");           // حذف entityها (ساده)
+            text = Regex.Replace(text, @"&[a-zA-Z]+;", " ");            // حذف entityها (ساده)
             text = Regex.Replace(text, @"&laquo;", "«");
             text = Regex.Replace(text, @"&raquo;", "»");
             text = Regex.Replace(text, @"&zwnj;", "‌");
@@ -600,6 +538,7 @@ namespace SayehBanTools.Framework.Converter
 
             return text.Trim();
         }
+
         /// <summary>
         /// تمیزسازی مقادیر سلول‌ها جهت جلوگیری از به‌هم‌ریختگی فرمت فایل
         /// </summary>
@@ -615,11 +554,9 @@ namespace SayehBanTools.Framework.Converter
                         .Replace("\n", " ");
         }
     }
-
-
-    /*
+}
+/*
         // تبدیل مدل به JSON و تمیز کردن هر مقدار بر اساس کد زبانش
         var translationsJson = JsonConvert.SerializeObject(model.Translations)
             .CleanJsonByLanguage();
      */
-}

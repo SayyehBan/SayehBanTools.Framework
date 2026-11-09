@@ -13,16 +13,18 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         {
             Normal,         // هر نوع متنی
             CharacterOnly,  // فقط حروف
-            Numeric,        // فقط عدد
-            Money,          // عدد با جداکننده ۳ رقمی
-            Date            // تاریخ هوشمند با Mask
+            Numeric,        // فقط عدد (بدون اعشار)
+            Money,          // عدد با جداکننده ۳ رقمی (پول)
+            Date,           // تاریخ هوشمند با Mask
+            Float,          // عدد اعشاری (مخصوص اوزان و مقادیر مثل 1.200)
+            Percent         // عدد اعشاری (مخصوص درصد مثل 12.5)
         }
 
         private TargetInputType _inputType = TargetInputType.Normal;
         private bool _isGregorianDate = false;
 
         // ==========================================
-        // بخش اضافه شده برای Watermark (متن راهنما)
+        // بخش Watermark (متن راهنما)
         // ==========================================
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern Int32 SendMessage(IntPtr hWnd, int msg, int wParam, [MarshalAs(UnmanagedType.LPWStr)] string lParam);
@@ -80,7 +82,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         }
 
         [Browsable(false)]
-        [Description("مقدار عددی بدون جداکننده (مخصوص حالت Money)")]
+        [Description("مقدار خالص و بدون فرمت (مخصوص Money، Float و Percent)")]
         public string UnformattedValue
         {
             get
@@ -88,6 +90,11 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 if (_inputType == TargetInputType.Money)
                 {
                     return Text.Replace(",", "").Replace("٫", "").Trim();
+                }
+                else if (_inputType == TargetInputType.Float || _inputType == TargetInputType.Percent)
+                {
+                    // برگرداندن مقدار اعشاری تمیز و آماده تبدیل به decimal/float
+                    return Text.Trim();
                 }
                 return Text;
             }
@@ -102,13 +109,52 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 
         private void ApplyInputTypeSettings()
         {
-            if (_inputType == TargetInputType.Date)
+            // تنظیمات پیش‌فرض برای طول متن
+            this.MaxLength = 32767;
+
+            switch (_inputType)
             {
-                ApplyDateDirectionAndFormatting();
-            }
-            else
-            {
-                this.MaxLength = 32767;
+                case TargetInputType.Date:
+                    ApplyDateDirectionAndFormatting();
+                    if (string.IsNullOrEmpty(_watermark)) Watermark = _isGregorianDate ? "YYYY/MM/DD" : "مثال: 1403/01/01";
+                    break;
+
+                case TargetInputType.Money:
+                    this.RightToLeft = RightToLeft.No;       // اعداد پولی بهتر است چپ‌چین باشند
+                    this.TextAlign = HorizontalAlignment.Left;
+                    if (string.IsNullOrEmpty(_watermark)) Watermark = "مبلغ به ریال / تومان";
+                    break;
+
+                case TargetInputType.Float:
+                    this.RightToLeft = RightToLeft.No;       // اعداد اعشاری چپ‌چین
+                    this.TextAlign = HorizontalAlignment.Left;
+                    if (string.IsNullOrEmpty(_watermark)) Watermark = "مقدار اعشاری (مثال: 1.200)";
+                    break;
+
+                case TargetInputType.Percent:
+                    this.RightToLeft = RightToLeft.No;       // اعداد درصدی چپ‌چین
+                    this.TextAlign = HorizontalAlignment.Left;
+                    if (string.IsNullOrEmpty(_watermark)) Watermark = "درصد %";
+                    this.MaxLength = 6; // جلوگیری از تایپ درصدهای غیرمنطقی طولانی
+                    break;
+
+                case TargetInputType.Numeric:
+                    this.RightToLeft = RightToLeft.No;
+                    this.TextAlign = HorizontalAlignment.Left;
+                    if (string.IsNullOrEmpty(_watermark)) Watermark = "فقط عدد";
+                    break;
+
+                case TargetInputType.CharacterOnly:
+                    this.RightToLeft = RightToLeft.Yes;
+                    this.TextAlign = HorizontalAlignment.Right;
+                    if (string.IsNullOrEmpty(_watermark)) Watermark = "فقط حروف مجاز است";
+                    break;
+
+                case TargetInputType.Normal:
+                default:
+                    this.RightToLeft = RightToLeft.Yes;
+                    this.TextAlign = HorizontalAlignment.Right;
+                    break;
             }
         }
 
@@ -118,15 +164,14 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 
             if (_isGregorianDate)
             {
-                // تنظیمات جهت تایپ میلادی (چپ به راست)
                 this.RightToLeft = RightToLeft.No;
                 this.TextAlign = HorizontalAlignment.Left;
             }
             else
             {
-                // تنظیمات جهت تایپ شمسی (راست به چپ)
-                this.RightToLeft = RightToLeft.Yes;
-                this.TextAlign = HorizontalAlignment.Right;
+                // در زبان فارسی حتی تاریخ شمسی هم بهتر است چپ‌چین باشد تا ارقام برعکس نشوند
+                this.RightToLeft = RightToLeft.No;
+                this.TextAlign = HorizontalAlignment.Left;
             }
         }
 
@@ -148,6 +193,20 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 case TargetInputType.Numeric:
                 case TargetInputType.Money:
                     if (!char.IsDigit(e.KeyChar)) e.Handled = true;
+                    break;
+
+                case TargetInputType.Float:
+                case TargetInputType.Percent:
+                    // اجازه ورود عدد و نقطه اعشاری
+                    if (!char.IsDigit(e.KeyChar) && e.KeyChar != '.')
+                    {
+                        e.Handled = true;
+                    }
+                    // جلوگیری از درج بیش از یک نقطه در کادر
+                    else if (e.KeyChar == '.' && Text.Contains("."))
+                    {
+                        e.Handled = true;
+                    }
                     break;
 
                 case TargetInputType.Date:
@@ -233,6 +292,11 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             if (_inputType == TargetInputType.Date && !string.IsNullOrWhiteSpace(Text))
             {
                 ValidateFinalDate();
+            }
+            // اصلاح نمایشی اعداد اعشاری که نقطه را در انتها رها کرده‌اند (مثل "12.")
+            else if ((_inputType == TargetInputType.Float || _inputType == TargetInputType.Percent) && Text.EndsWith("."))
+            {
+                Text = Text.TrimEnd('.');
             }
         }
 

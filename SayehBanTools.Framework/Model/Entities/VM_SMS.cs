@@ -22,7 +22,7 @@ namespace SayehBanTools.Framework.Model.Entities
             /// <summary>
             /// لینک API
             /// </summary>
-            public string Api { get; set; } = string.Empty;
+            public string ApiLink { get; set; } = string.Empty;
             /// <summary>
             /// کلید دسترسی
             /// </summary>
