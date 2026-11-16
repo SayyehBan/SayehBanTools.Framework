@@ -204,6 +204,19 @@ using SayehBanTools.Framework.Converter;
 "".NullIfEmpty();              // null
 1250000m.ToCurrency("fa");     // جداکننده هزارگان
 
+// پشتیبانی از ۹۹ زبان (کد دوحرفی یا منطقه‌ای: "hi" یا "hi-IN")
+"123".NormalizeByLanguage("hi");          // १२३ (رقم بومی)
+"١٢٣".NormalizeByLanguage("fa");          // ۱۲۳ (عربی ← فارسی)
+"१२३".ToInt("hi");                        // 123
+"۱۲٫۵".ToDecimal("fa");                   // 12.5
+"៣៤".ToEnglishDigits();                   // 34 (ارقام هر خطی)
+"123".ToNativeDigits("th");               // ๑๒๓
+1234567.ToNumeric("de");                  // 1.234.567
+"ur".IsRtlLanguage();                     // true
+"fa-IR".GetTextDirection();               // rtl
+SupportedLanguages.Find("ja").NativeName; // 日本語
+SupportedLanguages.List;                  // فهرست ۹۹ زبان (Id، Code، RegionCode، NativeName، TextDirection، Culture)
+
 // عدد به حروف
 ConvertNumbertToString.ConvertRaghamToHorof(1250);   // یک هزار و دویست و پنجاه
 ConvertNumToString.convert("1250");
@@ -235,11 +248,34 @@ Calculator.GetPercent(250m, 1000m); // 25
 ```csharp
 using SayehBanTools.Framework.GenerateValue;
 
-NationalCode.IsValidNationalCode("0012345679");       // اعتبارسنجی کد ملی
+// کد ملی ۱۰ رقمی (الگوریتم ثبت احوال؛ ارقام فارسی و خط‌تیره هم پذیرفته می‌شود)
+NationalCode.IsValidNationalCode("0014401509");       // true
+NationalCode.GenerateRandom();                        // تصادفی، محل صدور تصادفی
+NationalCode.GenerateRandom("001");                   // تصادفی در محل صدور 001
+NationalCode.GenerateRound();                         // رند، مثلاً 1005555559
+NationalCode.GenerateRound("001");                    // رند در محل صدور 001، مثلاً 0015555550
+
+// کد ملی ۲۰ رقمی: [کشور ۳][محل صدور ۳][سریال ۷][پسوند ۵][کنترل ۲]
+NationalCode.ConvertTo20("0014401509");               // 36400144015090000082 (کد قبلی دقیقاً داخلش است)
+NationalCode.ConvertTo10("36400144015090000082");     // 0014401509
+NationalCode.GenerateNear20("0014401509");            // کد ۲۰ رقمی جدید در همان محل صدور
+NationalCode.GenerateRandom20();                      // تصادفی (ایران 364)
+NationalCode.GenerateRound20("364", "001");           // رند در محل صدور 001
+NationalCode.IsValidNationalCode20("36400144015090000082"); // true
+
+NationalCode.IsValid("0014401509");                   // ۱۰ یا ۲۰ رقمی، بدون استثنا
+NationalCode.Format("36400144015090000082");          // 364-001-4401509-00000-82
+NationalCode.GetLocationCode("0014401509");           // 001
+
 LegalNationalID.IsValidLegalNationalID("10101234567"); // شناسه ملی اشخاص حقوقی
-string fake = NationalCode.GenerateRandom();           // کد ملی معتبر تصادفی (برای تست)
 string code = GenerateValues.Generate16ValueRandome(); // رشته تصادفی ۱۶ رقمی
 ```
+
+ساختار کد ۲۰ رقمی:
+- **کشور (۳ رقم):** کد عددی ISO 3166-1 (ایران = `364`) تا کشورهای دیگر در آینده بدون تداخل اضافه شوند.
+- **محل صدور (۳ رقم):** همان سه رقم اول کد ۱۰ رقمی.
+- **سریال (۷) + پسوند (۵):** در کد تبدیل‌شده از ۱۰ رقمی، محل صدور + سریال دقیقاً همان کد قبلی است و پسوند `00000`؛ کدهای جدید همیشه پسوند غیرصفر دارند، پس هیچ‌وقت با کدهای تبدیل‌شده تداخل ندارند (ظرفیت هر محل صدور حدود ۱۰^۱۲).
+- **کنترل (۲ رقم):** هر دو با همان قاعده ثبت احوال (`r = مجموع % 11`؛ `r < 2 ? r : 11 - r`)؛ رقم اول با وزن‌های ۱۰..۲ تکرارشونده روی ۱۸ رقم، رقم دوم با وزن‌های ۱..۱۰ روی ۱۹ رقم. هر خطای تک‌رقمی و هر جابه‌جایی دو رقم شناسایی می‌شود.
 
 ---
 
