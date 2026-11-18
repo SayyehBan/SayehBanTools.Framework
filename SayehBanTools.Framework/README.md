@@ -7,11 +7,55 @@
 
 مجموعه‌ای از ابزارها و کامپوننت‌های کاربردی برای **.NET Framework 4.8**: از کنترل‌های آماده WinForms (جدول، صفحه‌بندی، تکست‌باکس هوشمند، کمبوباکس با جستجو) تا تاریخ شمسی، تبدیل عدد به حروف، رمزنگاری، اعتبارسنجی کد ملی، پیامک، Redis، RabbitMQ، Elasticsearch و هوش مصنوعی محلی (Ollama).
 
+> 💡 **دو نسخه پکیج:** این کتابخانه به‌صورت دوقلو منتشر می‌شود — [SayehBanTools](https://www.nuget.org/packages/SayehBanTools) برای .NET Modern (net11.0-windows) و **SayehBanTools.Framework** برای .NET Framework 4.8. کد هر دو نسخه یکسان است و هر دو به‌طور موازی به‌روزرسانی می‌شوند؛ نسخه‌ای را نصب کنید که با Target Framework پروژه شما سازگار است.
+
+---
+
+## کارت‌خوان PC-POS
+
+اتصال به کارت‌خوان‌های PC-POS بانکی (پروتکل CPML) از طریق پورت سریال یا شبکه — namespace `SayehBanTools.Framework.PCPOS`:
+
+```csharp
+var settings = new PosConnectionSettings
+{
+    Brand = PosBrand.SayanKart,
+    ConnectionType = PosConnectionType.SerialPort,
+    SerialPort = "COM3",
+    BaudRate = 38400
+};
+
+var pos = PosCommander.Instance;
+if (pos.Init(settings))
+{
+    Response result = pos.Purchase("فاکتور ۱۲۳", "50000", print: true);
+}
+```
+
+سایر عملیات: `BalanceInquiry`، `BillPayment`، `LastTransaction`، `PrintText`. کدهای خطای `Response.ErrorCode`: 201 عدم اتصال، 202 خطای ارسال، 203 پاسخ خالی، 204 پاسخ نامعتبر.
+
+---
+
+## پخش فیلم آموزشی
+
+`LearningVideo` + `FrmLearningPlayer` (namespace `SayehBanTools.Framework.Utilities.win.Learning`) با موتور VLC محل توقف فیلم را برای ادامه‌ی دوباره ذخیره می‌کند:
+
+```csharp
+LearningVideo.Show(this);   // پوشه Learning کنار exe
+```
+
+پکیج به `LibVLCSharp` و `LibVLCSharp.WinForms` وابسته است؛ برای موتور بومی، بسته `VideoLAN.LibVLC.Windows` را به **برنامه مصرف‌کننده** اضافه کنید:
+
+```xml
+<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
+```
+
 ---
 
 ## فهرست
 
 - [نصب](#نصب)
+- [کارت‌خوان PC-POS](#کارتخوان-pc-pos)
+- [پخش فیلم آموزشی](#پخش-فیلم-آموزشی)
 - [کامپوننت‌های WinForms](#کامپوننتهای-winforms)
 - [ابزارهای کمکی WinForms](#ابزارهای-کمکی-winforms)
 - [تاریخ شمسی](#تاریخ-شمسی)
