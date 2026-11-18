@@ -185,7 +185,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             _cmbPageSize = new cmbbox
             {
                 Cursor = Cursors.Hand,
-                DropDownStyle = ComboBoxStyle.DropDown,
+                DropDownStyle = ComboBoxStyle.DropDownList,
                 Width = 65,
                 Location = new Point(220, 7),
                 Font = new Font("Tahoma", 8.5F, FontStyle.Regular)
