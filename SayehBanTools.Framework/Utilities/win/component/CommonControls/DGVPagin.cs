@@ -30,7 +30,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         private Label _lblPageInfo;
         private ComboBox _cmbPageSize;
         private FlowLayoutPanel _pnlPageButtons;
-        private Button _btnFirst, _btnPrev, _btnNext, _btnLast;
+        private Btn _btnFirst, _btnPrev, _btnNext, _btnLast;
         private bool _isUpdatingCmb = false;
 
         // متغیرهای مربوط به چک‌باکس انتخاب همه (Select All)
@@ -166,7 +166,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 
         private void InitializePagingControls()
         {
-            _pagingPanel = new Panel
+            _pagingPanel = new PanelGlass
             {
                 Height = 38,
                 Dock = DockStyle.Bottom,
@@ -293,7 +293,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             for (int p = startPage; p <= endPage; p++)
             {
                 int pageNum = p;
-                var btnNum = new Button
+                var btnNum = new Btn
                 {
                     Text = pageNum.ToString(),
                     Width = 32,
@@ -327,9 +327,9 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             _pnlPageButtons.Controls.Add(_btnLast);
         }
 
-        private Button CreateNavButton(string text, int targetPage, bool enabled)
+        private Btn CreateNavButton(string text, int targetPage, bool enabled)
         {
-            var btn = new Button
+            var btn = new Btn
             {
                 Text = text,
                 Width = 32,
