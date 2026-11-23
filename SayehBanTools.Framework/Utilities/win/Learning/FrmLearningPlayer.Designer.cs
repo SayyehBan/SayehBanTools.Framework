@@ -1,3 +1,5 @@
+using SayehBanTools.Framework.Utilities.win.component.CommonControls;
+
 namespace SayehBanTools.Framework.Utilities.win.Learning
 {
     partial class FrmLearningPlayer
@@ -29,10 +31,10 @@ namespace SayehBanTools.Framework.Utilities.win.Learning
             this.LblInfo = new System.Windows.Forms.Label();
             this.CmbSpeed = new System.Windows.Forms.ComboBox();
             this.BtnMute = new System.Windows.Forms.Button();
-            this.sliderVolume = new SayehBanTools.Framework.Utilities.win.Learning.PlayerSlider();
+            this.sliderVolume = new SayehBanTools.Framework.Utilities.win.component.CommonControls.PlayerSlider();
             this.BtnTopMost = new System.Windows.Forms.Button();
             this.BtnFullScreen = new System.Windows.Forms.Button();
-            this.sliderSeek = new SayehBanTools.Framework.Utilities.win.Learning.PlayerSlider();
+            this.sliderSeek = new SayehBanTools.Framework.Utilities.win.component.CommonControls.PlayerSlider();
             this.timerUi = new System.Windows.Forms.Timer(this.components);
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.videoView1)).BeginInit();
@@ -326,7 +328,7 @@ namespace SayehBanTools.Framework.Utilities.win.Learning
         private LibVLCSharp.WinForms.VideoView videoView1;
         private System.Windows.Forms.Panel panelControls;
         private System.Windows.Forms.Panel panelButtons;
-        private SayehBanTools.Framework.Utilities.win.Learning.PlayerSlider sliderSeek;
+        private PlayerSlider sliderSeek;
         private System.Windows.Forms.Button BtnRestart;
         private System.Windows.Forms.Button BtnBack;
         private System.Windows.Forms.Button BtnPlay;
@@ -335,7 +337,7 @@ namespace SayehBanTools.Framework.Utilities.win.Learning
         private System.Windows.Forms.Label LblInfo;
         private System.Windows.Forms.ComboBox CmbSpeed;
         private System.Windows.Forms.Button BtnMute;
-        private SayehBanTools.Framework.Utilities.win.Learning.PlayerSlider sliderVolume;
+        private PlayerSlider sliderVolume;
         private System.Windows.Forms.Button BtnTopMost;
         private System.Windows.Forms.Button BtnFullScreen;
         private System.Windows.Forms.Timer timerUi;

@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
-namespace SayehBanTools.Framework.Utilities.win.Learning
+namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 {
     /// <summary>
     /// نوار باریک پخش‌کننده (مثل نوار زمان یوتیوب) برای زمان فیلم و صدا.
