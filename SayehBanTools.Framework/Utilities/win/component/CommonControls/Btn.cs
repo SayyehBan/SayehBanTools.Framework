@@ -2,111 +2,52 @@
 using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Windows.Forms;
-using System.Windows.Forms.VisualStyles;
 
 namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 {
+    /// <summary>
+    /// دکمه پایدار و زیبا — بدون انیمیشن ناقص و بدون چشمک زدن
+    /// ظاهر ثابت در حالت عادی، هاور، فشرده و غیرفعال + پشتیبانی کامل از آیکون Image
+    /// </summary>
     public class Btn : Button
     {
-        #region " Global Variables "
+        private Color backColor = Color.Black;
+        private Color glowColor = Color.FromArgb(0x8D, 0xBD, 0xFF);
+        private Color shineColor = Color.White;
 
-        #region " Variables for Drawing "
+        // حالت‌های بصری
+        private bool isHovered;
+        private bool isPressed;
 
-        private GraphicsPath outerBorderPath;
-        private GraphicsPath ContentPath;
-        private GraphicsPath GlowClip;
-        private GraphicsPath GlowBottomRadial;
-        private GraphicsPath ShinePath;
-        private GraphicsPath BorderPath;
+        // کش مسیر ترسیم تا در هر paint دوباره ساخته نشود
+        private GraphicsPath facePath;
+        private int cachedW = -1;
+        private int cachedH = -1;
 
-        private PathGradientBrush GlowRadialPath;
+        // دکمه کمکی برای رندر صحیح متن + آیکون
+        private Button imageButton;
 
-        private LinearGradientBrush ShineBrush;
-
-        private Pen outerBorderPen;
-        private Pen BorderPen;
-
-        private Color specialSymbolColor;
-
-        private Brush specialSymbolBrush;
-        private Brush ContentBrush;
-
-        private Rectangle rect;
-        private Rectangle rect2;
-
-        #endregion
+        private int roundCorner = 6;
 
         /// <summary>
-        /// The ToolTip of the Control.
+        /// شعاع گوشه‌های دکمه
         /// </summary>
-        private ToolTip toolTip = new ToolTip();
-
-        /// <summary>
-        /// If false, the shine isn't drawn (-> symbolizes a disabled control).
-        /// </summary>
-        private bool drawShine = true;
-
-        /// <summary>
-        /// Set the transparency of the special Symbols.
-        /// </summary>
-        private int transparencyFactor = 128;
-
-        #endregion
-
-        #region " Constructors "
-
-        private Timer timer = new Timer();
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Btn" /> class.
-        /// </summary>
-        public Btn()
+        [DefaultValue(6), Category("Appearance"), Description("شعاع گردی گوشه‌های دکمه")]
+        public int CornerRadius
         {
-            DoubleBuffered = true;
-            Cursor = Cursors.Hand;
-            timer.Interval = animationLength / framesCount;
-            base.BackColor = Color.Transparent;
-            BackColor = Color.Black;
-            ForeColor = Color.White;
-            OuterBorderColor = Color.White;
-            InnerBorderColor = Color.Black;
-            ShineColor = Color.White;
-            GlowColor = Color.FromArgb(0x8D, 0xBD, 0xFF);
-            alternativeForm = false;
-            showFocusBorder = false;
-            animateGlow = false;
-            showSpecialSymbol = false;
-            specialSymbol = SpecialSymbols.Play;
-            specialSymbolColor = Color.White;
-            toolTipText = "";
-            specialSymbolBrush = new SolidBrush(Color.FromArgb(transparencyFactor, specialSymbolColor));
-            alternativeFocusBorderColor = Color.Black;
-            alternativeFormDirection = Direction.Left;
-            roundCorner = 6;
-
-            RecalcRect((float)currentFrame / (framesCount - 1f));
-
-            SetStyle(
-                ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw |
-                ControlStyles.SupportsTransparentBackColor | ControlStyles.UserPaint, true);
-            SetStyle(ControlStyles.Opaque, false);
-
-            this.SizeChanged += new EventHandler(GlassButton_SizeChanged);
-            this.MouseEnter += new EventHandler(GlassButton_MouseEnter);
-            this.MouseLeave += new EventHandler(GlassButton_MouseLeave);
-            this.GotFocus += new EventHandler(GlassButton_GotFocus);
-            this.LostFocus += new EventHandler(GlassButton_LostFocus);
+            get { return roundCorner; }
+            set
+            {
+                roundCorner = value;
+                cachedW = -1;
+                Invalidate();
+            }
         }
 
-        #endregion
-
-        #region " Fields and Properties "
-
-        private Color backColor;
-
         /// <summary>
-        /// Gets or sets the background color of the control.
+        /// رنگ پس‌زمینه دکمه
         /// </summary>
         [DefaultValue(typeof(Color), "Black")]
         public new Color BackColor
@@ -114,20 +55,13 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             get { return backColor; }
             set
             {
-                if (!backColor.Equals(value))
-                {
-                    backColor = value;
-                    UseVisualStyleBackColor = false;
-
-                    RecalcRect((float)currentFrame / (framesCount - 1f));
-
-                    OnBackColorChanged(EventArgs.Empty);
-                }
+                backColor = value;
+                Invalidate();
             }
         }
 
         /// <summary>
-        /// Gets or sets the foreground color of the control.
+        /// رنگ متن دکمه
         /// </summary>
         [DefaultValue(typeof(Color), "White")]
         public new Color ForeColor
@@ -136,894 +70,257 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             set
             {
                 base.ForeColor = value;
-
-                RecalcRect((float)currentFrame / (framesCount - 1f));
-            }
-        }
-
-        private Color innerBorderColor;
-
-        /// <summary>
-        /// Gets or sets the inner border color of the control.
-        /// </summary>
-        [DefaultValue(typeof(Color), "Black"), Category("Appearance"),
-         Description("The inner border color of the control.")]
-        public Color InnerBorderColor
-        {
-            get { return innerBorderColor; }
-            set
-            {
-                if (innerBorderColor != value)
-                {
-                    innerBorderColor = value;
-
-                    RecalcRect((float)currentFrame / (framesCount - 1f));
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
+                Invalidate();
             }
         }
 
         /// <summary>
-        /// Gets or sets the color of the special symbol.
+        /// رنگ خط دور دکمه
         /// </summary>
-        [DefaultValue(typeof(Color), "White"), Category("Appearance"),
-         Description("The color of the special symbol.")]
-        public Color SpecialSymbolColor
-        {
-            get { return specialSymbolColor; }
-            set
-            {
-                if (specialSymbolColor != value)
-                {
-                    specialSymbolColor = value;
-                    specialSymbolBrush = new SolidBrush(Color.FromArgb(transparencyFactor, specialSymbolColor));
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        private int roundCorner;
+        [DefaultValue(typeof(Color), "Gray"), Category("Appearance"),
+         Description("رنگ خط دور دکمه")]
+        public Color BorderColor { get; set; } = Color.Gray;
 
         /// <summary>
-        /// Gets or sets the corner radius.
+        /// رنگ پس‌زمینه در حالت هاور — پیش‌فرض از GlowColor گرفته می‌شود
         /// </summary>
-        [DefaultValue(6), Category("Appearance"), Description("The radius of the corners.")]
-        public int CornerRadius
-        {
-            get { return roundCorner; }
-            set
-            {
-                if (roundCorner != value)
-                {
-                    roundCorner = value;
-
-                    RecalcRect((float)currentFrame / (framesCount - 1f));
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        private string toolTipText;
+        [Category("Appearance"), Description("رنگ پس‌زمینه هنگام هاور (اگر خالی باشد از GlowColor استفاده می‌شود)")]
+        public Color HoverBackColor { get; set; } = Color.Empty;
 
         /// <summary>
-        /// Gets or sets the tool tip text.
+        /// رنگ پس‌زمینه وقتی دکمه فشرده می‌شود
         /// </summary>
-        [DefaultValue(""), Category("Appearance"),
-         Description("The ToolTip-Text of the button. Leave blank to not show a ToolTip.")]
-        public string ToolTipText
-        {
-            get { return toolTipText; }
-            set
-            {
-                if (toolTipText != value)
-                {
-                    toolTipText = value;
-
-                    if (toolTipText.Length > 0)
-                        toolTip.SetToolTip(this, toolTipText);
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        private bool alternativeForm;
+        [Category("Appearance"), Description("رنگ پس‌زمینه هنگام فشردن")]
+        public Color PressedBackColor { get; set; } = Color.FromArgb(30, 30, 30);
 
         /// <summary>
-        /// Gets or sets the alternative form.
-        /// </summary>
-        [DefaultValue(false), Category("Appearance"), Description("Draws the Button in an alternative Form.")]
-        public bool AlternativeForm
-        {
-            get { return alternativeForm; }
-            set
-            {
-                if (alternativeForm != value)
-                {
-                    alternativeForm = value;
-
-                    RecalcRect((float)currentFrame / (framesCount - 1f));
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        private bool animateGlow;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the glow is animated.
-        /// </summary>
-        [DefaultValue(false), Category("Appearance"), Description("If true the glow is animated.")]
-        public bool AnimateGlow
-        {
-            get { return animateGlow; }
-            set
-            {
-                if (animateGlow != value)
-                {
-                    animateGlow = value;
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        private bool showSpecialSymbol;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether a special symbol is drawn.
-        /// </summary>
-        [DefaultValue(false), Category("Appearance"),
-         Description("If true, the selected special symbol will be drawn on the button.")]
-        public bool ShowSpecialSymbol
-        {
-            get { return showSpecialSymbol; }
-            set
-            {
-                if (showSpecialSymbol != value)
-                {
-                    showSpecialSymbol = value;
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// List of all available special symbols.
-        /// </summary>
-        public enum SpecialSymbols
-        {
-            ArrowLeft,
-            ArrowRight,
-            ArrowUp,
-            ArrowDown,
-            Play,
-            Pause,
-            Stop,
-            FastForward,
-            Forward,
-            Backward,
-            FastBackward,
-            Speaker,
-            NoSpeaker,
-            Repeat,
-            RepeatAll,
-            Shuffle
-        }
-
-        private SpecialSymbols specialSymbol;
-
-        /// <summary>
-        /// Gets or sets the special symbol.
-        /// </summary>
-        [DefaultValue(typeof(SpecialSymbols), "Play"), Category("Appearance"),
-         Description("Sets the type of the special symbol on the button.")]
-        public SpecialSymbols SpecialSymbol
-        {
-            get { return specialSymbol; }
-            set
-            {
-                if (specialSymbol != value)
-                {
-                    specialSymbol = value;
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        public enum Direction
-        {
-            Left,
-            Right
-        }
-
-        private Direction alternativeFormDirection;
-
-        /// <summary>
-        /// Gets or sets the alternative form direction.
-        /// </summary>
-        [DefaultValue(typeof(Direction), "Left"), Category("Appearance"),
-         Description("Sets the Direction of the alternative Form.")]
-        public Direction AlternativeFormDirection
-        {
-            get { return alternativeFormDirection; }
-            set
-            {
-                if (alternativeFormDirection != value)
-                {
-                    alternativeFormDirection = value;
-
-                    RecalcRect((float)currentFrame / (framesCount - 1f));
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        private bool showFocusBorder;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the focus border is shown.
-        /// </summary>
-        [DefaultValue(false), Category("Appearance"),
-         Description("Draw the normal Focus-Border. Alternative Focus-Border will be drawn if false.")]
-        public bool ShowFocusBorder
-        {
-            get { return showFocusBorder; }
-            set
-            {
-                if (showFocusBorder != value)
-                {
-                    showFocusBorder = value;
-
-                    RecalcRect((float)currentFrame / (framesCount - 1f));
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        private Color alternativeFocusBorderColor;
-
-        /// <summary>
-        /// Gets or sets the color of the alternative focus border.
-        /// </summary>
-        [DefaultValue(typeof(Color), "Black"), Category("Appearance"),
-         Description("The color of the alternative Focus-Border.")]
-        public Color AlternativeFocusBorderColor
-        {
-            get { return alternativeFocusBorderColor; }
-            set
-            {
-                if (alternativeFocusBorderColor != value)
-                {
-                    alternativeFocusBorderColor = value;
-
-                    RecalcRect((float)currentFrame / (framesCount - 1f));
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        private Color outerBorderColor;
-
-        /// <summary>
-        /// Gets or sets the outer border color of the control.
-        /// </summary>
-        [DefaultValue(typeof(Color), "White"), Category("Appearance"),
-         Description("The outer border color of the control.")]
-        public Color OuterBorderColor
-        {
-            get { return outerBorderColor; }
-            set
-            {
-                if (outerBorderColor != value)
-                {
-                    outerBorderColor = value;
-
-                    RecalcRect((float)currentFrame / (framesCount - 1f));
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        private Color shineColor;
-
-        /// <summary>
-        /// Gets or sets the shine color of the control.
-        /// </summary>
-        [DefaultValue(typeof(Color), "White"), Category("Appearance"), Description("The shine color of the control.")]
-        public Color ShineColor
-        {
-            get { return shineColor; }
-            set
-            {
-                if (shineColor != value)
-                {
-                    shineColor = value;
-
-                    RecalcRect((float)currentFrame / (framesCount - 1f));
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        private Color glowColor;
-
-        /// <summary>
-        /// Gets or sets the glow color of the control.
+        /// رنگ هاله دکمه (همان رنگ هاور پیش‌فرض)
         /// </summary>
         [DefaultValue(typeof(Color), "255,141,189,255"), Category("Appearance"),
-         Description("The glow color of the control.")]
+         Description("رنگ هاله دکمه در حالت هاور")]
         public Color GlowColor
         {
             get { return glowColor; }
             set
             {
-                if (glowColor != value)
-                {
-                    glowColor = value;
-
-                    RecalcRect((float)currentFrame / (framesCount - 1f));
-
-                    if (IsHandleCreated)
-                    {
-                        Invalidate();
-                    }
-                }
-            }
-        }
-
-        private bool isHovered;
-        private bool isFocused;
-        private bool isFocusedByKey;
-        private bool isKeyDown;
-        private bool isMouseDown;
-
-        private bool isPressed
-        {
-            get { return isKeyDown || (isMouseDown && isHovered); }
-        }
-
-        /// <summary>
-        /// Gets the state of the button control.
-        /// </summary>
-        [Browsable(false)]
-        public PushButtonState State
-        {
-            get
-            {
-                if (!Enabled)
-                {
-                    return PushButtonState.Disabled;
-                }
-                if (isPressed)
-                {
-                    return PushButtonState.Pressed;
-                }
-                if (isHovered)
-                {
-                    return PushButtonState.Hot;
-                }
-                if (isFocused || IsDefault)
-                {
-                    return PushButtonState.Default;
-                }
-                return PushButtonState.Normal;
-            }
-        }
-
-        #endregion
-
-        #region " Overrided Methods "
-
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.Click" /> event.
-        /// </summary>
-        protected override void OnClick(EventArgs e)
-        {
-            isKeyDown = isMouseDown = false;
-            base.OnClick(e);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.Enter" /> event.
-        /// </summary>
-        protected override void OnEnter(EventArgs e)
-        {
-            isFocused = isFocusedByKey = true;
-            base.OnEnter(e);
-        }
-
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.Leave" /> event.
-        /// </summary>
-        protected override void OnLeave(EventArgs e)
-        {
-            base.OnLeave(e);
-            isFocused = isFocusedByKey = isKeyDown = isMouseDown = false;
-            Invalidate();
-        }
-
-        /// <summary>
-        /// Raises the <see cref="M:System.Windows.Forms.ButtonBase.OnKeyUp(System.Windows.Forms.KeyEventArgs)" /> event.
-        /// </summary>
-        protected override void OnKeyDown(KeyEventArgs kevent)
-        {
-            if (kevent.KeyCode == Keys.Space)
-            {
-                isKeyDown = true;
+                glowColor = value;
                 Invalidate();
             }
-            base.OnKeyDown(kevent);
         }
 
         /// <summary>
-        /// Raises the <see cref="M:System.Windows.Forms.ButtonBase.OnKeyUp(System.Windows.Forms.KeyEventArgs)" /> event.
+        /// رنگ لایه شیشه‌ای بالای دکمه
         /// </summary>
-        protected override void OnKeyUp(KeyEventArgs kevent)
+        [DefaultValue(typeof(Color), "White"), Category("Appearance"),
+         Description("شدت افکت شیشه‌ای بالای دکمه")]
+        public Color ShineColor
         {
-            if (isKeyDown && kevent.KeyCode == Keys.Space)
+            get { return shineColor; }
+            set
             {
-                isKeyDown = false;
+                shineColor = value;
                 Invalidate();
             }
-            base.OnKeyUp(kevent);
         }
 
+        private Color disabledBackColor = Color.FromArgb(210, 210, 210);
+        private Color disabledForeColor = Color.FromArgb(120, 120, 120);
+
         /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.MouseDown" /> event.
+        /// رنگ پس‌زمینه وقتی دکمه غیرفعال است
         /// </summary>
-        protected override void OnMouseDown(MouseEventArgs e)
+        [Category("Appearance"), Description("رنگ پس‌زمینه هنگام غیرفعال بودن")]
+        public Color DisabledBackColor
         {
-            if (!isMouseDown && e.Button == MouseButtons.Left)
+            get { return disabledBackColor; }
+            set
             {
-                isMouseDown = true;
-                isFocusedByKey = false;
+                disabledBackColor = value;
                 Invalidate();
             }
-            base.OnMouseDown(e);
         }
 
         /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.MouseUp" /> event.
+        /// رنگ متن وقتی دکمه غیرفعال است
         /// </summary>
-        protected override void OnMouseUp(MouseEventArgs e)
+        [Category("Appearance"), Description("رنگ متن هنگام غیرفعال بودن")]
+        public Color DisabledForeColor
         {
-            if (isMouseDown)
+            get { return disabledForeColor; }
+            set
             {
-                isMouseDown = false;
+                disabledForeColor = value;
                 Invalidate();
             }
-            base.OnMouseUp(e);
         }
 
-        /// <summary>
-        /// Raises the <see cref="M:System.Windows.Forms.Control.OnMouseMove(System.Windows.Forms.MouseEventArgs)" /> event.
-        /// </summary>
-        protected override void OnMouseMove(MouseEventArgs mevent)
+        public Btn()
         {
-            base.OnMouseMove(mevent);
-            if (mevent.Button != MouseButtons.None)
-            {
-                if (!ClientRectangle.Contains(mevent.X, mevent.Y))
-                {
-                    if (isHovered)
-                    {
-                        isHovered = false;
-                        Invalidate();
-                    }
-                }
-                else if (!isHovered)
-                {
-                    isHovered = true;
-                    Invalidate();
-                }
-            }
+            SetStyle(
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.ResizeRedraw |
+                ControlStyles.UserPaint, true);
+
+            DoubleBuffered = true;
+            Cursor = Cursors.Hand;
+            BackColor = Color.Black;
+            ForeColor = Color.White;
+            FlatStyle = FlatStyle.Flat;
+            FlatAppearance.BorderSize = 0;
         }
 
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.MouseEnter" /> event.
-        /// </summary>
+        #region حالت‌های موس
+
         protected override void OnMouseEnter(EventArgs e)
         {
-            isHovered = true;
-            FadeIn();
-            Invalidate();
             base.OnMouseEnter(e);
+            isHovered = true;
+            Invalidate();
         }
 
-        /// <summary>
-        /// Raises the <see cref="E:System.Windows.Forms.Control.MouseLeave" /> event.
-        /// </summary>
         protected override void OnMouseLeave(EventArgs e)
         {
-            isHovered = false;
-            FadeOut();
-            Invalidate();
             base.OnMouseLeave(e);
+            isHovered = false;
+            Invalidate();
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+            if (e.Button == MouseButtons.Left)
+            {
+                isPressed = true;
+                Invalidate();
+            }
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            isPressed = false;
+            Invalidate();
+        }
+
+        protected override void OnEnabledChanged(EventArgs e)
+        {
+            base.OnEnabledChanged(e);
+            isHovered = false;
+            isPressed = false;
+            Invalidate();
         }
 
         #endregion
 
-        #region " Painting "
+        #region ترسیم
 
-        /// <summary>
-        /// Raises the <see cref="M:System.Windows.Forms.ButtonBase.OnPaint(System.Windows.Forms.PaintEventArgs)" /> event.
-        /// </summary>
-        protected override void OnPaint(PaintEventArgs pevent)
+        private static GraphicsPath BuildFacePath(int w, int h, int radius)
         {
-            SmoothingMode sm = pevent.Graphics.SmoothingMode;
-            pevent.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-
-            DrawButtonBackground(pevent.Graphics);
-            DrawForegroundFromButton(pevent);
-            DrawButtonForeground(pevent.Graphics);
-
-            pevent.Graphics.SmoothingMode = sm;
-        }
-
-        /// <summary>
-        /// Draws the button background.
-        /// </summary>
-        private void DrawButtonBackground(Graphics g)
-        {
-            // white border
-            g.DrawPath(outerBorderPen, outerBorderPath);
-
-            // content
-            g.FillPath(ContentBrush, ContentPath);
-
-            // glow
-            if ((isHovered || isAnimating) && !isPressed)
+            var path = new GraphicsPath();
+            int r = Math.Min(radius, Math.Min(w / 2, h / 2));
+            if (r <= 0)
             {
-                g.SetClip(GlowClip, CombineMode.Intersect);
-                g.FillPath(GlowRadialPath, GlowBottomRadial);
-                g.ResetClip();
+                path.AddRectangle(new Rectangle(0, 0, w, h));
+                return path;
             }
 
-            // shine
-            if (drawShine && Enabled)
-            {
-                g.FillPath(ShineBrush, ShinePath);
-            }
-
-            // black border
-            g.DrawPath(BorderPen, BorderPath);
-
-            // Draws the special Symbol
-            if (showSpecialSymbol)
-                DrawSpecialSymbol(g);
+            int d = r * 2;
+            path.AddArc(0, 0, d, d, 180, 90);
+            path.AddArc(w - d, 0, d, d, 270, 90);
+            path.AddArc(w - d, h - d, d, d, 0, 90);
+            path.AddArc(0, h - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
         }
 
-        /// <summary>
-        /// Draws the special symbol.
-        /// </summary>
-        private void DrawSpecialSymbol(Graphics g)
+        // ترکیب دو رنگ با نسبت درصدی (برای افکت شیشه‌ای)
+        private static Color Blend(Color baseColor, Color overlayColor, int alphaPercent)
         {
-            int offset = 15;
-            int lineWidth = Width / 15;
-            Pen pen = new Pen(specialSymbolBrush, Width / 8);
-            pen.EndCap = LineCap.ArrowAnchor;
-            Pen aPen = new Pen(specialSymbolBrush, Width / 4);
-            aPen.EndCap = LineCap.ArrowAnchor;
-            Pen sPen = new Pen(specialSymbolBrush, Width / 20);
-            sPen.EndCap = LineCap.ArrowAnchor;
-            Font font = new Font("Arial", lineWidth * 4, FontStyle.Bold);
+            int a = Math.Max(0, Math.Min(100, alphaPercent));
+            return Color.FromArgb(
+                baseColor.A,
+                (baseColor.R * (100 - a) + overlayColor.R * a) / 100,
+                (baseColor.G * (100 - a) + overlayColor.G * a) / 100,
+                (baseColor.B * (100 - a) + overlayColor.B * a) / 100);
+        }
 
-            switch (specialSymbol)
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            int w = Width, h = Height;
+            if (w <= 0 || h <= 0) return;
+
+            // مسیر ترسیم فقط وقتی اندازه عوض شد دوباره ساخته می‌شود
+            if (facePath == null || cachedW != w || cachedH != h)
             {
-                #region " Arrow Left "
+                if (facePath != null) facePath.Dispose();
+                facePath = BuildFacePath(w, h, roundCorner);
+                cachedW = w;
+                cachedH = h;
+            }
 
-                case SpecialSymbols.ArrowLeft:
-                    g.DrawLine(aPen, Width - Width / 5, Height / 2, Width / 8, Height / 2);
-                    break;
+            Color face;
+            Color text;
 
-                #endregion
+            if (!Enabled)
+            {
+                face = DisabledBackColor;
+                text = DisabledForeColor;
+            }
+            else if (isPressed)
+            {
+                face = PressedBackColor;
+                text = ForeColor;
+            }
+            else if (isHovered)
+            {
+                face = HoverBackColor == Color.Empty ? glowColor : HoverBackColor;
+                text = ForeColor;
+            }
+            else
+            {
+                face = backColor;
+                text = ForeColor;
+            }
 
-                #region " Arrow Right "
+            // افکت شیشه‌ای: لایه ShineColor روی رنگ پایه (فقط حالت فعال)
+            if (Enabled && shineColor.A > 0)
+            {
+                face = Blend(face, shineColor, 18);
+            }
 
-                case SpecialSymbols.ArrowRight:
-                    g.DrawLine(aPen, Width / 6, Height / 2, Width - Width / 8, Height / 2);
-                    break;
+            using (var b = new SolidBrush(face))
+            {
+                g.FillPath(b, facePath);
+            }
 
-                #endregion
+            // خط دور — فقط وقتی دکمه فعال است
+            if (Enabled)
+            {
+                using (var p = new Pen(BorderColor, 1f))
+                {
+                    g.DrawPath(p, facePath);
+                }
+            }
 
-                #region " Arrow Up "
-
-                case SpecialSymbols.ArrowUp:
-                    g.DrawLine(aPen, Width / 2, Height - Height / 5, Width / 2, Height / 8);
-                    break;
-
-                #endregion
-
-                #region " Arrow Down "
-
-                case SpecialSymbols.ArrowDown:
-                    g.DrawLine(aPen, Width / 2, Height / 5, Width / 2, Height - Height / 8);
-                    break;
-
-                #endregion
-
-                #region " Play "
-
-                case SpecialSymbols.Play:
-                    g.FillPolygon(specialSymbolBrush, new Point[3]
-                    {
-                        new Point(Width/4 + Width/20, Height/4),
-                        new Point(Width - Width/4 + Width/20, Height/2),
-                        new Point(Width/4 + Width/20, Height - Height/4)
-                    });
-                    break;
-
-                #endregion
-
-                #region " Pause "
-
-                case SpecialSymbols.Pause:
-                    g.FillRectangle(specialSymbolBrush, new Rectangle(Width / 4, Height / 4,
-                        (Width / 2 - Width / 10) / 2, Height / 2));
-                    g.FillRectangle(specialSymbolBrush, new Rectangle(Width / 2 + Width / 20, Height / 4,
-                        (Width / 2 - Width / 10) / 2, Height / 2));
-                    break;
-
-                #endregion
-
-                #region " Stop "
-
-                case SpecialSymbols.Stop:
-                    g.FillRectangle(specialSymbolBrush, new Rectangle(Width / 4 + Width / 20, Height / 4 + Height / 20,
-                        Width / 2 - Width / 10, Height / 2 - Width / 10));
-                    break;
-
-                #endregion
-
-                #region " FastForward "
-
-                case SpecialSymbols.FastForward:
-                    g.FillPolygon(specialSymbolBrush, new Point[3]
-                    {
-                        new Point(Width/4, Height/4),
-                        new Point(Width/2, Height/2),
-                        new Point(Width/4, Height - Height/4)
-                    });
-                    g.FillPolygon(specialSymbolBrush, new Point[3]
-                    {
-                        new Point(Width/2, Height/4),
-                        new Point(3*Width/4, Height/2),
-                        new Point(Width/2, Height - Height/4)
-                    });
-                    g.FillRectangle(specialSymbolBrush, new Rectangle(3 * Width / 4, Height / 4,
-                        Width / 12, Height / 2));
-                    break;
-
-                #endregion
-
-                #region " Forward "
-
-                case SpecialSymbols.Forward:
-                    g.FillPolygon(specialSymbolBrush, new Point[3]
-                    {
-                        new Point(Width/4 + Width/12, Height/4),
-                        new Point(Width/2 + Width/12, Height/2),
-                        new Point(Width/4 + Width/12, Height - Height/4)
-                    });
-                    g.FillPolygon(specialSymbolBrush, new Point[3]
-                    {
-                        new Point(Width/2 + Width/12, Height/4),
-                        new Point(3*Width/4 + Width/12, Height/2),
-                        new Point(Width/2 + Width/12, Height - Height/4)
-                    });
-                    break;
-
-                #endregion
-
-                #region " Backward "
-
-                case SpecialSymbols.Backward:
-                    g.FillPolygon(specialSymbolBrush, new Point[3]
-                    {
-                        new Point(Width/4 - Width/12, Height/2),
-                        new Point(Width/2 - Width/12, Height/4),
-                        new Point(Width/2 - Width/12, Height - Height/4)
-                    });
-                    g.FillPolygon(specialSymbolBrush, new Point[3]
-                    {
-                        new Point(Width/2 - Width/12, Height/2),
-                        new Point(3*Width/4 - Width/12, Height/4),
-                        new Point(3*Width/4 - Width/12, Height - Height/4)
-                    });
-                    break;
-
-                #endregion
-
-                #region " FastBackward "
-
-                case SpecialSymbols.FastBackward:
-                    g.FillPolygon(specialSymbolBrush, new Point[3]
-                    {
-                        new Point(Width/4, Height/2),
-                        new Point(Width/2, Height/4),
-                        new Point(Width/2, Height - Height/4)
-                    });
-                    g.FillPolygon(specialSymbolBrush, new Point[3]
-                    {
-                        new Point(Width/2, Height/2),
-                        new Point(3*Width/4, Height/4),
-                        new Point(3*Width/4, Height - Height/4)
-                    });
-                    g.FillRectangle(specialSymbolBrush, new Rectangle(Width / 4 - Width / 12, Height / 4,
-                        Width / 12, Height / 2));
-                    break;
-
-                #endregion
-
-                #region " Speaker "
-
-                case SpecialSymbols.Speaker:
-                    g.DrawPolygon(new Pen(specialSymbolBrush, Width / 20), new Point[6]
-                    {
-                        new Point(Width/2 - Width/6 - Width/offset, Height/4 + Height/10),
-                        new Point(Width/2 - Width/offset, Height/4 + Height/10),
-                        new Point(Width/2 + Width/5 - Width/offset, Height/4),
-                        new Point(Width/2 + Width/5 - Width/offset, 3*Height/4),
-                        new Point(Width/2 - Width/offset, 3*Height/4 - Height/10),
-                        new Point(Width/2 - Width/6 - Width/offset, 3*Height/4 - Height/10)
-                    });
-                    g.DrawLine(new Pen(specialSymbolBrush, Width / 20), Width / 2 - Width / offset,
-                        Height / 4 + Height / 10 + Width / 40, Width / 2 - Width / offset,
-                        Height - (Height / 4 + Height / 10 + Width / 40));
-                    break;
-
-                #endregion
-
-                #region " NoSpeaker "
-
-                case SpecialSymbols.NoSpeaker:
-                    g.DrawPolygon(new Pen(specialSymbolBrush, Width / 20), new Point[6]
-                    {
-                        new Point(Width/2 - Width/6 - Width/offset, Height/4 + Height/10),
-                        new Point(Width/2 - Width/offset, Height/4 + Height/10),
-                        new Point(Width/2 + Width/5 - Width/offset, Height/4),
-                        new Point(Width/2 + Width/5 - Width/offset, 3*Height/4),
-                        new Point(Width/2 - Width/offset, 3*Height/4 - Height/10),
-                        new Point(Width/2 - Width/6 - Width/offset, 3*Height/4 - Height/10)
-                    });
-                    g.DrawLine(new Pen(specialSymbolBrush, Width / 20), Width / 2 - Width / offset,
-                        Height / 4 + Height / 10 + Width / 40, Width / 2 - Width / offset,
-                        Height - (Height / 4 + Height / 10 + Width / 40));
-                    g.DrawLine(new Pen(specialSymbolBrush, Width / 20), (int)(Width / 2 - Width / 3.5 - Width / offset),
-                        3 * Height / 4 - Height / 10,
-                        Width / 2 + Width / 3 - Width / offset, Height / 4 + Height / 12 + Width / 40);
-                    break;
-
-                #endregion
-
-                #region " Repeat "
-
-                case SpecialSymbols.Repeat:
-                    g.DrawLine(new Pen(specialSymbolBrush, lineWidth),
-                        new Point((int)(Width / 4), (int)(Height / 3)),
-                        new Point((int)(Width - Width / 2.4), (int)(Height / 3)));
-                    g.DrawArc(new Pen(specialSymbolBrush, lineWidth), (int)(Width - Width * 0.6), (int)(Height / 3),
-                        (int)(Width / 3), (int)(Height / 3), 270, 180);
-                    g.DrawLine(new Pen(specialSymbolBrush, lineWidth),
-                        new Point((int)(Width - Width / 2.4), (int)(Height - Height / 3)),
-                        new Point((int)(Width / 3.2), (int)(Height - Height / 3)));
-                    g.DrawLine(pen,
-                        new Point((int)(Width / 3.2), (int)(Height - Height / 3)),
-                        new Point((int)(Width / 4), (int)(Height - Height / 3)));
-                    break;
-
-                #endregion
-
-                #region " RepeatAll "
-
-                case SpecialSymbols.RepeatAll:
-                    g.DrawLine(new Pen(specialSymbolBrush, lineWidth),
-                        new Point((int)(Width / 2.4), (int)(Height / 3)),
-                        new Point((int)(Width - Width / 2.4), (int)(Height / 3)));
-                    g.DrawArc(new Pen(specialSymbolBrush, lineWidth), (int)(Width - Width * 0.6), (int)(Height / 3),
-                        (int)(Width / 3), (int)(Height / 3), 270, 180);
-                    g.DrawLine(new Pen(specialSymbolBrush, lineWidth),
-                        new Point((int)(Width - Width / 2.4), (int)(Height - Height / 3)),
-                        new Point((int)(Width / 2.4), (int)(Height - Height / 3)));
-                    g.DrawLine(pen,
-                        new Point((int)(Width / 2.4), (int)(Height - Height / 3)),
-                        new Point((int)(Width / 3), (int)(Height - Height / 3)));
-                    g.DrawArc(new Pen(specialSymbolBrush, lineWidth), (int)(Width / 4), (int)(Height / 3),
-                        (int)(Width / 3), (int)(Height / 3), 90, 180);
-                    break;
-
-                #endregion
-
-                #region " Shuffle "
-
-                case SpecialSymbols.Shuffle:
-                    g.DrawString("1", font, specialSymbolBrush, (Width / 2) / 4, Height / 2 - lineWidth * 2);
-                    int sWidth = (int)g.MeasureString("2", font).Width;
-                    int sHeight = (int)g.MeasureString("2", font).Height;
-                    g.DrawString("2", font, specialSymbolBrush, Width / 2 - sWidth / 2 - Width / (2 * offset),
-                        Height - lineWidth - sHeight);
-                    sWidth = (int)g.MeasureString("3", font).Width;
-                    g.DrawString("3", font, specialSymbolBrush, Width - (Width / 2) / 4 - sWidth - Width / (2 * offset),
-                        Height / 2 - lineWidth * 2);
-                    g.DrawArc(pen, (Width / 2) / 2, Height / 6, Width - (Width / 2), (int)(Height / 2.2), 170, 210);
-                    break;
-
-                #endregion
-
-                default:
-                    break;
+            // متن و آیکون
+            if (Enabled)
+            {
+                // رندر توسط دکمه کمکی واقعی — چیدمان متن+آیکون دقیقا مثل Button استاندارد
+                DrawForegroundFromButton(e, text);
+            }
+            else
+            {
+                // حالت غیرفعال: آیکون خاکستری + متن با رنگ DisabledForeColor
+                DrawDisabledContent(g, w, h, text);
             }
         }
 
-        /// <summary>
-        /// Draws the button foreground.
-        /// </summary>
-        private void DrawButtonForeground(Graphics g)
-        {
-            if (ShowFocusBorder && Focused && ShowFocusCues && !alternativeForm)
-            {
-                Rectangle rect = ClientRectangle;
-                rect.Inflate(-4, -4);
-                ControlPaint.DrawFocusRectangle(g, rect);
-            }
-        }
-
-        private Button imageButton;
-
-        /// <summary>
-        /// Draws the foreground from button.
-        /// </summary>
-        private void DrawForegroundFromButton(PaintEventArgs pevent)
+        // ترسیم متن + آیکون در حالت فعال با استفاده از یک Button کمکی
+        private void DrawForegroundFromButton(PaintEventArgs pevent, Color textColor)
         {
             if (imageButton == null)
             {
@@ -1033,13 +330,24 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 imageButton.FlatAppearance.BorderSize = 0;
                 imageButton.FlatStyle = FlatStyle.Flat;
             }
-            if (direction != 0)
-            {
-                imageButton.SuspendLayout();
-            }
-            imageButton.ForeColor = ForeColor;
+
+            imageButton.ForeColor = textColor;
             imageButton.Font = Font;
-            imageButton.RightToLeft = RightToLeft;
+
+            // اگر متن فقط از کاراکترهای جهت‌دار (< > « ») ساخته شده، RightToLeft را خاموش کن
+            // تا mirroring رخ ندهد (مثلا >> به < تبدیل و برعکس نمایش داده نشود)
+            string t = Text ?? "";
+            bool directionalOnly = t.Length > 0;
+            foreach (char c in t)
+            {
+                if (c != '<' && c != '>' && c != '«' && c != '»')
+                {
+                    directionalOnly = false;
+                    break;
+                }
+            }
+            imageButton.RightToLeft = directionalOnly ? RightToLeft.No : RightToLeft;
+
             imageButton.Image = Image;
             imageButton.ImageAlign = ImageAlign;
             imageButton.ImageIndex = ImageIndex;
@@ -1052,11 +360,113 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             imageButton.TextImageRelation = TextImageRelation;
             imageButton.UseCompatibleTextRendering = UseCompatibleTextRendering;
             imageButton.UseMnemonic = UseMnemonic;
-            if (direction != 0)
-            {
-                imageButton.ResumeLayout();
-            }
+
             InvokePaint(imageButton, pevent);
+        }
+
+        // ترسیم متن + آیکون خاکستری در حالت غیرفعال
+        private void DrawDisabledContent(Graphics g, int w, int h, Color textColor)
+        {
+            // آیکون خاکستری — بر اساس ImageAlign
+            Image img = Image;
+            if (img != null && img.Width > 0 && img.Height > 0)
+            {
+                int pad = Math.Max(Padding.Horizontal / 2, 2);
+                Rectangle bounds = new Rectangle(pad, pad, w - 2 * pad, h - 2 * pad);
+                if (bounds.Width > 0 && bounds.Height > 0)
+                {
+                    float scale = Math.Min(
+                        (float)bounds.Width / img.Width,
+                        (float)bounds.Height / img.Height);
+                    int w2 = Math.Max(1, (int)(img.Width * scale));
+                    int h2 = Math.Max(1, (int)(img.Height * scale));
+
+                    Point pos = CalcAlignmentPosition(bounds, w2, h2, ImageAlign);
+                    using (Image gray = CreateGrayImage(img))
+                    {
+                        g.DrawImage(gray, new Rectangle(pos, new Size(w2, h2)));
+                    }
+                }
+            }
+
+            // متن غیرفعال
+            TextRenderer.DrawText(
+                g,
+                Text,
+                Font,
+                ClientRectangle,
+                textColor,
+                TextFormatFlags.HorizontalCenter |
+                TextFormatFlags.VerticalCenter |
+                TextFormatFlags.NoPadding);
+        }
+
+        // محاسبه موقعیت یک مستطیل w2×h2 داخل bounds بر اساس ContentAlignment
+        private static Point CalcAlignmentPosition(Rectangle bounds, int w2, int h2, ContentAlignment alignment)
+        {
+            int x, y;
+
+            switch (alignment)
+            {
+                case ContentAlignment.TopLeft:
+                case ContentAlignment.MiddleLeft:
+                case ContentAlignment.BottomLeft:
+                    x = bounds.Left;
+                    break;
+                case ContentAlignment.TopRight:
+                case ContentAlignment.MiddleRight:
+                case ContentAlignment.BottomRight:
+                    x = bounds.Right - w2;
+                    break;
+                default: // TopCenter / MiddleCenter / BottomCenter
+                    x = bounds.Left + (bounds.Width - w2) / 2;
+                    break;
+            }
+
+            switch (alignment)
+            {
+                case ContentAlignment.TopLeft:
+                case ContentAlignment.TopCenter:
+                case ContentAlignment.TopRight:
+                    y = bounds.Top;
+                    break;
+                case ContentAlignment.BottomLeft:
+                case ContentAlignment.BottomCenter:
+                case ContentAlignment.BottomRight:
+                    y = bounds.Bottom - h2;
+                    break;
+                default: // MiddleLeft / MiddleCenter / MiddleRight
+                    y = bounds.Top + (bounds.Height - h2) / 2;
+                    break;
+            }
+
+            return new Point(x, y);
+        }
+
+        // نسخه خاکستری آیکون برای حالت غیرفعال
+        private static Image CreateGrayImage(Image source)
+        {
+            Image gray = new Bitmap(source.Width, source.Height);
+            using (Graphics g = Graphics.FromImage(gray))
+            {
+                ColorMatrix matrix = new ColorMatrix(new float[][]
+                {
+                    new float[] {0.33f, 0.33f, 0.33f, 0, 0},
+                    new float[] {0.33f, 0.33f, 0.33f, 0, 0},
+                    new float[] {0.33f, 0.33f, 0.33f, 0, 0},
+                    new float[] {0, 0, 0, 1, 0},
+                    new float[] {0, 0, 0, 0, 1}
+                });
+
+                using (ImageAttributes attrs = new ImageAttributes())
+                {
+                    attrs.SetColorMatrix(matrix);
+                    Rectangle r = new Rectangle(0, 0, source.Width, source.Height);
+                    g.DrawImage(source, r, 0, 0, source.Width, source.Height,
+                                GraphicsUnit.Pixel, attrs);
+                }
+            }
+            return gray;
         }
 
         private class TransparentControl : Control
@@ -1070,414 +480,29 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             }
         }
 
-        /// <summary>
-        /// Creates the round rectangle.
-        /// </summary>
-        private GraphicsPath CreateRoundRectangle(Rectangle rectangle, int radius)
+        protected override void OnPaintBackground(PaintEventArgs e)
         {
-            GraphicsPath path = new GraphicsPath();
-            int l = rectangle.Left;
-            int t = rectangle.Top;
-            int w = rectangle.Width;
-            int h = rectangle.Height;
-            int d = radius << 1;
-
-            if (alternativeForm)
-            {
-                if (alternativeFormDirection == Direction.Left)
-                {
-                    path.AddArc(l, t, h, h, 90, 180);
-                    path.AddLine(l + h, t, l + w, t);
-                    path.AddCurve(new Point[5]
-                    {
-                        new Point(l + w, t),
-                        new Point(l + w - h/6, t + h/4),
-                        new Point((int) (l + w - (double) (h/4.7)), t + h/2),
-                        new Point(l + w - h/6, t + 3*h/4),
-                        new Point(l + w, t + h)
-                    });
-                    path.AddLine(l + h, t + h, l + w, t + h);
-                }
-                else
-                {
-                    path.AddCurve(new Point[5]
-                    {
-                        new Point(l, t),
-                        new Point(l + h/6, t + h/4),
-                        new Point((int) (l + (double) (h/4.85)), t + h/2),
-                        new Point(l + h/6, t + 3*h/4),
-                        new Point(l, t + h)
-                    });
-                    path.AddLine(l, t + h, l + w - h, t + h);
-                    path.AddArc(l + w - h, t, h, h, 90, -180);
-                    path.AddLine(l + w - h, t, l, t);
-                }
-            }
-            else
-            {
-                path.AddArc(l, t, d, d, 180, 90); // topleft
-                path.AddLine(l + radius, t, l + w - radius, t); // top
-                path.AddArc(l + w - d, t, d, d, 270, 90); // topright
-                path.AddLine(l + w, t + radius, l + w, t + h - radius); // right
-                path.AddArc(l + w - d, t + h - d, d, d, 0, 90); // bottomright
-                path.AddLine(l + w - radius, t + h, l + radius, t + h); // bottom
-                path.AddArc(l, t + h - d, d, d, 90, 90); // bottomleft
-                path.AddLine(l, t + h - radius, l, t + radius); // left
-            }
-
-            path.CloseFigure();
-
-            return path;
-        }
-
-        /// <summary>
-        /// Creates the top round rectangle.
-        /// </summary>
-        private GraphicsPath CreateTopRoundRectangle(Rectangle rectangle, int radius)
-        {
-            GraphicsPath path = new GraphicsPath();
-            int l = rectangle.Left;
-            int t = rectangle.Top;
-            int w = rectangle.Width;
-            int h = rectangle.Height;
-            int d = radius << 1;
-
-            if (alternativeForm)
-            {
-                if (alternativeFormDirection == Direction.Left)
-                {
-                    path.AddArc(l, t, h * 2, h * 2, 180, 90);
-                    path.AddLine(l + h, t, l + w, t);
-                    path.AddCurve(new Point[3]
-                    {
-                        new Point(l + w, t),
-                        new Point(l + w - h/3, t + h/2),
-                        new Point((int) (l + w - (double) (h/2.35)), t + h)
-                    });
-                }
-                else
-                {
-                    path.AddCurve(new Point[3]
-                    {
-                        new Point(l, t),
-                        new Point(l + h/3, t + h/2),
-                        new Point((int) (l + (double) (h/2.35)), t + h)
-                    });
-                    path.AddLine((int)(l + (double)(h / 2.35)), t + h, l + w - h, t + h);
-                    path.AddArc(l + w - h * 2, t, h * 2, h * 2, 0, -90);
-                }
-            }
-            else
-            {
-                path.AddArc(l, t, d, d, 180, 90); // topleft
-                path.AddLine(l + radius, t, l + w - radius, t); // top
-                path.AddArc(l + w - d, t, d, d, 270, 90); // topright
-                path.AddLine(l + w, t + radius, l + w, t + h); // right
-                path.AddLine(l + w, t + h, l, t + h); // bottom
-                path.AddLine(l, t + h, l, t + radius); // left
-            }
-
-            path.CloseFigure();
-
-            return path;
-        }
-
-        /// <summary>
-        /// Creates the bottom radial path.
-        /// </summary>
-        private GraphicsPath CreateBottomRadialPath(Rectangle rectangle)
-        {
-            GraphicsPath path = new GraphicsPath();
-            RectangleF rect = rectangle;
-            rect.X -= rectangle.Width * .35f;
-            rect.Y -= rectangle.Height * .15f;
-            rect.Width *= 1.7f;
-            rect.Height *= 2.3f;
-            path.AddEllipse(rect);
-            path.CloseFigure();
-            return path;
-        }
-
-        /// <summary>
-        /// Handles the SizeChanged event of the GlassButton control.
-        /// </summary>
-        private void GlassButton_SizeChanged(object sender, EventArgs e)
-        {
-            RecalcRect((float)currentFrame / (framesCount - 1f));
-        }
-
-        /// <summary>
-        /// Handles the MouseLeave event of the GlassButton control.
-        /// </summary>
-        private void GlassButton_MouseLeave(object sender, EventArgs e)
-        {
-            RecalcGlow((float)currentFrame / (framesCount - 1f));
-        }
-
-        /// <summary>
-        /// Handles the MouseEnter event of the GlassButton control.
-        /// </summary>
-        private void GlassButton_MouseEnter(object sender, EventArgs e)
-        {
-            RecalcGlow((float)currentFrame / (framesCount - 1f));
-        }
-
-        /// <summary>
-        /// Handles the LostFocus event of the GlassButton control.
-        /// </summary>
-        private void GlassButton_LostFocus(object sender, EventArgs e)
-        {
-            RecalcOuterBorder();
-        }
-
-        /// <summary>
-        /// Handles the GotFocus event of the GlassButton control.
-        /// </summary>
-        private void GlassButton_GotFocus(object sender, EventArgs e)
-        {
-            RecalcOuterBorder();
-        }
-
-        /// <summary>
-        /// Recalcs the rectangles for drawing.
-        /// </summary>
-        private void RecalcRect(float glowOpacity)
-        {
-            try
-            {
-                int rCorner = roundCorner;
-
-                if (roundCorner > Height / 2)
-                    rCorner = Height / 2;
-
-                if (roundCorner > Width / 2)
-                    rCorner = Width / 2;
-
-                rect = RecalcOuterBorder();
-
-                rect = RecalcContent(rect, out rect2);
-
-                RecalcGlow(glowOpacity);
-
-                rect2 = RecalcShine(rect2);
-
-                BorderPath = CreateRoundRectangle(rect, rCorner);
-
-                BorderPen = new Pen(innerBorderColor);
-            }
-            catch
-            {
-            }
-        }
-
-        /// <summary>
-        /// Recalcs the shine.
-        /// </summary>
-        private Rectangle RecalcShine(Rectangle rect2)
-        {
-            int rCorner = roundCorner;
-
-            if (roundCorner > Height / 2)
-                rCorner = Height / 2;
-
-            if (roundCorner > Width / 2)
-                rCorner = Width / 2;
-
-            if (rect2.Width > 0 && rect2.Height > 0)
-            {
-                rect2.Height++;
-                ShinePath = CreateTopRoundRectangle(rect2, rCorner);
-
-                rect2.Height++;
-                int opacity = 0x99;
-                if (isPressed)
-                    opacity = (int)(.4f * opacity + .5f);
-                ShineBrush = new LinearGradientBrush(rect2, Color.FromArgb(opacity, shineColor),
-                    Color.FromArgb(opacity / 3, shineColor), LinearGradientMode.Vertical);
-
-                rect2.Height -= 2;
-
-                drawShine = true;
-            }
-            else
-                drawShine = false;
-            return rect2;
-        }
-
-        /// <summary>
-        /// Recalcs the glow.
-        /// </summary>
-        private void RecalcGlow(float glowOpacity)
-        {
-            int rCorner = roundCorner;
-
-            if (roundCorner > Height / 2)
-                rCorner = Height / 2;
-
-            if (roundCorner > Width / 2)
-                rCorner = Width / 2;
-
-            GlowClip = CreateRoundRectangle(rect, rCorner);
-            GlowBottomRadial = CreateBottomRadialPath(rect);
-
-            GlowRadialPath = new PathGradientBrush(GlowBottomRadial);
-
-            int opacity = (int)(0xB2 * glowOpacity + .5f);
-
-            if (!animateGlow)
-            {
-                if (isHovered)
-                    opacity = 255;
-                else
-                    opacity = 0;
-            }
-
-            GlowRadialPath.CenterColor = Color.FromArgb(opacity, glowColor);
-            GlowRadialPath.SurroundColors = new Color[] { Color.FromArgb(0, glowColor) };
-        }
-
-        /// <summary>
-        /// Recalcs the content.
-        /// </summary>
-        private Rectangle RecalcContent(Rectangle rect, out Rectangle rect2)
-        {
-            int rCorner = roundCorner;
-
-            if (roundCorner > Height / 2)
-                rCorner = Height / 2;
-
-            if (roundCorner > Width / 2)
-                rCorner = Width / 2;
-
-            rect.X++;
-            rect.Y++;
-            rect.Width -= 2;
-            rect.Height -= 2;
-
-            rect2 = rect;
-            rect2.Height >>= 1;
-
-            ContentPath = CreateRoundRectangle(rect, rCorner);
-            int opacity = isPressed ? 0xcc : 0x7f;
-            ContentBrush = new SolidBrush(Color.FromArgb(opacity, backColor));
-            return rect;
-        }
-
-        /// <summary>
-        /// Recalcs the outer border.
-        /// </summary>
-        private Rectangle RecalcOuterBorder()
-        {
-            int rCorner = roundCorner;
-
-            if (roundCorner > Height / 2)
-                rCorner = Height / 2;
-
-            if (roundCorner > Width / 2)
-                rCorner = Width / 2;
-
-            Rectangle rect;
-            rect = ClientRectangle;
-            rect.Width--;
-            rect.Height--;
-            outerBorderPath = CreateRoundRectangle(rect, rCorner);
-            rect.Inflate(1, 1);
-            GraphicsPath region = CreateRoundRectangle(rect, rCorner);
-            this.Region = new Region(region);
-            rect.Inflate(-1, -1);
-
-            Color col = outerBorderColor;
-            if (Focused && !ShowFocusBorder)
-                col = alternativeFocusBorderColor;
-
-            outerBorderPen = new Pen(col);
-            return rect;
+            // ترسیم کامل پس‌زمینه در OnPaint انجام می‌شود
         }
 
         #endregion
 
-        #region " Unused Properties & Events "
-
-        /// <summary>This property is not relevant for this class.</summary>
-        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden),
-         EditorBrowsable(EditorBrowsableState.Never)]
-        public new FlatButtonAppearance FlatAppearance
+        protected override void Dispose(bool disposing)
         {
-            get { return base.FlatAppearance; }
-        }
-
-        /// <summary>This property is not relevant for this class.</summary>
-        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden),
-         EditorBrowsable(EditorBrowsableState.Never)]
-        public new FlatStyle FlatStyle
-        {
-            get { return base.FlatStyle; }
-            set { base.FlatStyle = value; }
-        }
-
-        /// <summary>This property is not relevant for this class.</summary>
-        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden),
-         EditorBrowsable(EditorBrowsableState.Never)]
-        public new bool UseVisualStyleBackColor
-        {
-            get { return base.UseVisualStyleBackColor; }
-            set { base.UseVisualStyleBackColor = value; }
-        }
-
-        #endregion
-
-        #region " Animation Support "
-
-        private const int animationLength = 300;
-        private const int framesCount = 10;
-        private int currentFrame;
-        private int direction;
-
-        private bool isAnimating
-        {
-            get
+            if (disposing)
             {
-                return direction != 0;
+                if (facePath != null)
+                {
+                    facePath.Dispose();
+                    facePath = null;
+                }
+                if (imageButton != null)
+                {
+                    imageButton.Dispose();
+                    imageButton = null;
+                }
             }
+            base.Dispose(disposing);
         }
-
-        private void FadeIn()
-        {
-            direction = 1;
-            timer.Enabled = true;
-        }
-
-        private void FadeOut()
-        {
-            direction = -1;
-            timer.Enabled = true;
-        }
-
-        private void timer_Tick(object sender, EventArgs e)
-        {
-            if (!timer.Enabled || !animateGlow)
-            {
-                return;
-            }
-
-            RecalcRect((float)currentFrame / (framesCount - 1f));
-            Refresh();
-            currentFrame += direction;
-            if (currentFrame == -1)
-            {
-                currentFrame = 0;
-                timer.Enabled = false;
-                direction = 0;
-                return;
-            }
-            if (currentFrame == framesCount)
-            {
-                currentFrame = framesCount - 1;
-                timer.Enabled = false;
-                direction = 0;
-            }
-        }
-
-        #endregion
     }
 }

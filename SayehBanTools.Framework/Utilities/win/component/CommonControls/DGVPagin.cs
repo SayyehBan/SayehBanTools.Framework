@@ -33,15 +33,121 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         private Btn _btnFirst, _btnPrev, _btnNext, _btnLast;
         private bool _isUpdatingCmb = false;
 
+        // برای جلوگیری از rebuild غیرضروری دکمه‌ها (رفع چشمک‌زدن و مخفی‌شدن ۱-۲ ثانیه‌ای)
+        private int _lastRenderedFirstPage = -1;
+        private int _lastRenderedLastPage = -1;
+        private int _lastRenderedTotal = -1;
+
+        // استایل دکمه‌های صفحه‌بندی — از Properties قابل تنظیم است
+        private Color _pageButtonBackColor = Color.Black;
+        private Color _pageButtonForeColor = Color.White;
+        private Color _pageButtonBorderColor = Color.Gray;
+        private Color _currentPageBackColor = Color.LightSteelBlue;
+        private Color _currentPageForeColor = Color.White;
+        private Color _disabledButtonBackColor = Color.FromArgb(210, 210, 210);
+        private Color _disabledButtonForeColor = Color.FromArgb(120, 120, 120);
+        private Font _pageButtonFont = new Font("Tahoma", 8F);
+        private bool _styleInitialized = false;
+
         // متغیرهای مربوط به چک‌باکس انتخاب همه (Select All)
         private CheckBox _headerCheckBox;
         private string _selectAllColumnName = "";
+
+        #region استایل دکمه‌های صفحه‌بندی (قابل تنظیم از Properties)
+
+        /// <summary>رنگ پس‌زمینه دکمه‌های صفحه‌بندی</summary>
+        [Category("Paging Style"), Description("رنگ پس‌زمینه دکمه‌های شماره صفحه")]
+        public Color PageButtonBackColor
+        {
+            get { return _pageButtonBackColor; }
+            set { _pageButtonBackColor = value; if (_styleInitialized) RefreshPageButtonsState(); }
+        }
+
+        /// <summary>رنگ متن دکمه‌های صفحه‌بندی</summary>
+        [Category("Paging Style"), Description("رنگ متن دکمه‌های شماره صفحه")]
+        public Color PageButtonForeColor
+        {
+            get { return _pageButtonForeColor; }
+            set { _pageButtonForeColor = value; if (_styleInitialized) RefreshPageButtonsState(); }
+        }
+
+        /// <summary>رنگ خط دور دکمه‌های صفحه‌بندی</summary>
+        [Category("Paging Style"), Description("رنگ خط دور دکمه‌های صفحه‌بندی")]
+        public Color PageButtonBorderColor
+        {
+            get { return _pageButtonBorderColor; }
+            set { _pageButtonBorderColor = value; if (_styleInitialized) RefreshPageButtonsState(); }
+        }
+
+        /// <summary>رنگ پس‌زمینه دکمه صفحه جاری</summary>
+        [Category("Paging Style"), Description("رنگ پس‌زمینه دکمه صفحه جاری")]
+        public Color CurrentPageBackColor
+        {
+            get { return _currentPageBackColor; }
+            set { _currentPageBackColor = value; if (_styleInitialized) RefreshPageButtonsState(); }
+        }
+
+        /// <summary>رنگ متن دکمه صفحه جاری</summary>
+        [Category("Paging Style"), Description("رنگ متن دکمه صفحه جاری")]
+        public Color CurrentPageForeColor
+        {
+            get { return _currentPageForeColor; }
+            set { _currentPageForeColor = value; if (_styleInitialized) RefreshPageButtonsState(); }
+        }
+
+        /// <summary>رنگ پس‌زمینه دکمه‌های غیرفعال (اول/قبلی/بعدی/آخر وقتی به ابتدا یا انتهای لیست رسیده‌ایم)</summary>
+        [Category("Paging Style"), Description("رنگ پس‌زمینه دکمه‌های غیرفعال")]
+        public Color DisabledButtonBackColor
+        {
+            get { return _disabledButtonBackColor; }
+            set { _disabledButtonBackColor = value; if (_styleInitialized) RefreshPageButtonsState(); }
+        }
+
+        /// <summary>رنگ متن دکمه‌های غیرفعال</summary>
+        [Category("Paging Style"), Description("رنگ متن دکمه‌های غیرفعال")]
+        public Color DisabledButtonForeColor
+        {
+            get { return _disabledButtonForeColor; }
+            set { _disabledButtonForeColor = value; if (_styleInitialized) RefreshPageButtonsState(); }
+        }
+
+        /// <summary>فونت دکمه‌های صفحه‌بندی</summary>
+        [Category("Paging Style"), Description("فونت دکمه‌های صفحه‌بندی")]
+        public Font PageButtonFont
+        {
+            get { return _pageButtonFont; }
+            set
+            {
+                _pageButtonFont = value ?? new Font("Tahoma", 8F);
+                _lastRenderedFirstPage = -1; // ساخت مجدد دکمه‌ها با فونت جدید
+                if (_styleInitialized && TotalRecords > 0) SetPagingInfo(TotalRecords, CurrentPage);
+            }
+        }
+
+        /// <summary>رنگ پس‌زمینه دکمه‌های ناوبری (اول/قبلی/بعدی/آخر)</summary>
+        [Category("Paging Style"), Description("رنگ پس‌زمینه دکمه‌های ناوبری (اول/قبلی/بعدی/آخر)")]
+        public Color NavButtonBackColor
+        {
+            get { return _pageButtonBackColor; }
+            set { _pageButtonBackColor = value; if (_styleInitialized) RefreshPageButtonsState(); }
+        }
+
+        /// <summary>رنگ متن دکمه‌های ناوبری</summary>
+        [Category("Paging Style"), Description("رنگ متن دکمه‌های ناوبری (اول/قبلی/بعدی/آخر)")]
+        public Color NavButtonForeColor
+        {
+            get { return _pageButtonForeColor; }
+            set { _pageButtonForeColor = value; if (_styleInitialized) RefreshPageButtonsState(); }
+        }
+
+        #endregion
 
         public DGVPagin()
         {
             DoubleBuffered = true;
             this.AllowUserToOrderColumns = true;
             InitializePagingControls();
+            _styleInitialized = true;
         }
 
         #region چک‌باکس یکپارچه هدر (Select All)
@@ -256,10 +362,28 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 
             if (TotalRecords > PageSize)
             {
+                // پنل فقط وقتی لازم است نمایش داده شود؛ هرگز هنگام رفرش مخفی نمی‌شود (رفع مخفی‌شدن ۱-۲ ثانیه‌ای)
                 _pagingPanel.Visible = true;
                 _lblPageInfo.Text = $"صفحه {CurrentPage} از {TotalPages} (کل: {TotalRecords})";
 
-                RenderPageButtons();
+                // فقط وقتی ساختار صفحات عوض شد (تعداد کل یا بازه شماره‌ها) دکمه‌ها از نو ساخته می‌شوند
+                int startPage, endPage;
+                CalcRenderedRange(out startPage, out endPage);
+
+                bool structureChanged =
+                    _lastRenderedFirstPage != startPage ||
+                    _lastRenderedLastPage != endPage ||
+                    _lastRenderedTotal != TotalRecords;
+
+                if (structureChanged || _pnlPageButtons.Controls.Count == 0)
+                {
+                    RenderPageButtons(startPage, endPage);
+                }
+                else
+                {
+                    // دکمه‌ها سر جایشان هستند؛ فقط رنگ/فونت/فعال‌بودنشان به‌روز می‌شود (بدون چشمک)
+                    RefreshPageButtonsState();
+                }
             }
             else
             {
@@ -267,28 +391,97 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             }
         }
 
-        private void RenderPageButtons()
+        private void CalcRenderedRange(out int startPage, out int endPage)
         {
-            _pnlPageButtons.Controls.Clear();
-
+            int maxButtons = 10;
             int total = TotalPages;
             int current = CurrentPage;
 
-            _btnFirst = CreateNavButton(">>", 1, current > 1);
-            _pnlPageButtons.Controls.Add(_btnFirst);
-
-            _btnPrev = CreateNavButton(">", current - 1, current > 1);
-            _pnlPageButtons.Controls.Add(_btnPrev);
-
-            int maxButtons = 10;
-            int startPage = Math.Max(1, current - (maxButtons / 2));
-            int endPage = startPage + maxButtons - 1;
+            startPage = Math.Max(1, current - (maxButtons / 2));
+            endPage = startPage + maxButtons - 1;
 
             if (endPage > total)
             {
                 endPage = total;
                 startPage = Math.Max(1, endPage - maxButtons + 1);
             }
+        }
+
+        /// <summary>
+        /// بروزرسانی رنگ/فونت/فعال‌بودن دکمه‌های موجود بدون rebuild — بدون چشمک زدن
+        /// </summary>
+        private void RefreshPageButtonsState()
+        {
+            int current = CurrentPage;
+            int total = TotalPages;
+
+            // دکمه‌های ناوبری
+            if (_btnFirst != null && _btnPrev != null)
+            {
+                bool back = current > 1;
+                if (_btnFirst.Enabled != back) _btnFirst.Enabled = back;
+                if (_btnPrev.Enabled != back) _btnPrev.Enabled = back;
+            }
+            if (_btnNext != null && _btnLast != null)
+            {
+                bool fwd = current < total;
+                if (_btnNext.Enabled != fwd) _btnNext.Enabled = fwd;
+                if (_btnLast.Enabled != fwd) _btnLast.Enabled = fwd;
+            }
+
+            // دکمه‌های شماره صفحه
+            foreach (Control c in _pnlPageButtons.Controls)
+            {
+                var btn = c as Btn;
+                if (btn == null) continue;
+
+                btn.BorderColor = _pageButtonBorderColor;
+                btn.DisabledBackColor = _disabledButtonBackColor;
+                btn.DisabledForeColor = _disabledButtonForeColor;
+
+                int pageNum;
+                if (int.TryParse(btn.Text, out pageNum))
+                {
+                    bool isCurrent = pageNum == current;
+                    bool shouldBeEnabled = !isCurrent;
+                    if (btn.Enabled != shouldBeEnabled) btn.Enabled = shouldBeEnabled;
+                    btn.BackColor = isCurrent ? _currentPageBackColor : _pageButtonBackColor;
+                    btn.ForeColor = isCurrent ? _currentPageForeColor : _pageButtonForeColor;
+                    btn.Font = isCurrent ? new Font(_pageButtonFont, FontStyle.Bold) : _pageButtonFont;
+                    btn.Cursor = isCurrent ? Cursors.Default : Cursors.Hand;
+                    // رنگ دکمه صفحه جاری در حالت disabled — از DisabledBackColor/ForeColor می‌آید
+                    if (isCurrent)
+                    {
+                        btn.DisabledBackColor = _currentPageBackColor;
+                        btn.DisabledForeColor = _currentPageForeColor;
+                    }
+                }
+            }
+        }
+
+        private void RenderPageButtons(int startPage, int endPage)
+        {
+            // جدا کردن event handler ها قبل از Clear تا دوباره subscribe نشوند
+            foreach (Control c in _pnlPageButtons.Controls)
+            {
+                var b = c as Btn;
+                if (b != null) b.Click -= GoToPageClick;
+            }
+            _pnlPageButtons.Controls.Clear();
+
+            int total = TotalPages;
+            int current = CurrentPage;
+
+            // ثبت بازه رندرشده برای تشخیص تغییر ساختار در دفعات بعد
+            _lastRenderedFirstPage = startPage;
+            _lastRenderedLastPage = endPage;
+            _lastRenderedTotal = TotalRecords;
+
+            _btnFirst = CreateNavButton("<<", "first", current > 1);
+            _pnlPageButtons.Controls.Add(_btnFirst);
+
+            _btnPrev = CreateNavButton("<", "prev", current > 1);
+            _pnlPageButtons.Controls.Add(_btnPrev);
 
             for (int p = startPage; p <= endPage; p++)
             {
@@ -298,48 +491,83 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                     Text = pageNum.ToString(),
                     Width = 32,
                     Height = 27,
-                    FlatStyle = FlatStyle.Flat,
                     Margin = new Padding(1),
-                    Font = new Font("Tahoma", 8F, pageNum == current ? FontStyle.Bold : FontStyle.Regular),
-                    BackColor = pageNum == current ? Color.LightSteelBlue : Color.White,
-                    Cursor = Cursors.Hand
+                    Font = _pageButtonFont,
+                    BackColor = pageNum == current ? _currentPageBackColor : _pageButtonBackColor,
+                    ForeColor = pageNum == current ? _currentPageForeColor : _pageButtonForeColor,
+                    BorderColor = _pageButtonBorderColor,
+                    Cursor = Cursors.Hand,
+                    Tag = pageNum // صفحه مقصد — در GoToPageClick استفاده می‌شود
                 };
-                btnNum.FlatAppearance.BorderSize = 1;
-                btnNum.FlatAppearance.BorderColor = Color.Gray;
 
                 if (pageNum == current)
                 {
                     btnNum.Enabled = false;
                     btnNum.Cursor = Cursors.Default;
+                    btnNum.Font = new Font(_pageButtonFont, FontStyle.Bold);
+                    btnNum.DisabledBackColor = _currentPageBackColor;
+                    btnNum.DisabledForeColor = _currentPageForeColor;
                 }
                 else
                 {
-                    btnNum.Click += (s, e) => GoToPage(pageNum);
+                    btnNum.Click += GoToPageClick;
                 }
 
                 _pnlPageButtons.Controls.Add(btnNum);
             }
 
-            _btnNext = CreateNavButton("<", current + 1, current < total);
+            _btnNext = CreateNavButton(">", "next", current < total);
             _pnlPageButtons.Controls.Add(_btnNext);
 
-            _btnLast = CreateNavButton("<<", total, current < total);
+            _btnLast = CreateNavButton(">>", "last", current < total);
             _pnlPageButtons.Controls.Add(_btnLast);
         }
 
-        private Btn CreateNavButton(string text, int targetPage, bool enabled)
+        private void GoToPageClick(object sender, EventArgs e)
+        {
+            var btn = sender as Btn;
+            if (btn == null) return;
+
+            // دکمه‌های شماره صفحه — Tag عددیِ صفحه مقصد
+            if (btn.Tag is int)
+            {
+                GoToPage((int)btn.Tag);
+                return;
+            }
+
+            // دکمه‌های ناوبری — مقصد در لحظه کلیک محاسبه می‌شود (همیشه به‌روز)
+            // این رفع باگ است: اگر Tag عددی بود (مثل prev که current+1 بود)، بعد از
+            // تغییر صفحه دیگر به‌روز نمی‌شد و کلیک دوم کار نمی‌کرد
+            string kind = btn.Tag as string;
+            switch (kind)
+            {
+                case "first": GoToPage(1); break;
+                case "last": GoToPage(TotalPages); break;
+                case "prev": GoToPage(CurrentPage - 1); break;
+                case "next": GoToPage(CurrentPage + 1); break;
+            }
+        }
+
+        private Btn CreateNavButton(string text, string kind, bool enabled)
         {
             var btn = new Btn
             {
                 Text = text,
                 Width = 32,
                 Height = 27,
-                FlatStyle = FlatStyle.System,
                 Margin = new Padding(1),
                 Enabled = enabled,
-                Cursor = Cursors.Hand
+                BackColor = _pageButtonBackColor,
+                ForeColor = _pageButtonForeColor,
+                BorderColor = _pageButtonBorderColor,
+                Font = _pageButtonFont,
+                Cursor = Cursors.Hand,
+                Tag = kind // نوع ناوبری: first / prev / next / last — مقصد در لحظه کلیک محاسبه می‌شود
             };
-            btn.Click += (s, e) => GoToPage(targetPage);
+            // رنگ دکمه غیرفعال — چون Btn در حالت disabled رنگ DisabledBackColor خودش را می‌گیرد
+            btn.DisabledBackColor = _disabledButtonBackColor;
+            btn.DisabledForeColor = _disabledButtonForeColor;
+            btn.Click += GoToPageClick;
             return btn;
         }
 
