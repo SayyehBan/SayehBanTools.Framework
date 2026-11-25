@@ -39,13 +39,14 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
         private int _lastRenderedTotal = -1;
 
         // استایل دکمه‌های صفحه‌بندی — از Properties قابل تنظیم است
-        private Color _pageButtonBackColor = Color.Black;
-        private Color _pageButtonForeColor = Color.White;
-        private Color _pageButtonBorderColor = Color.Gray;
-        private Color _currentPageBackColor = Color.LightSteelBlue;
-        private Color _currentPageForeColor = Color.White;
-        private Color _disabledButtonBackColor = Color.FromArgb(210, 210, 210);
-        private Color _disabledButtonForeColor = Color.FromArgb(120, 120, 120);
+        // رنگ‌های پیش‌فرض شاد: دکمه‌های شماره فیروزه‌ای، صفحه جاری زرد طلایی با متن سیاه (خوانا)
+        private Color _pageButtonBackColor = Color.FromArgb(128, 255, 255);
+        private Color _pageButtonForeColor = Color.Black;
+        private Color _pageButtonBorderColor = Color.FromArgb(53, 122, 183);
+        private Color _currentPageBackColor = Color.Gold;
+        private Color _currentPageForeColor = Color.Black;
+        private Color _disabledButtonBackColor = Color.FromArgb(225, 225, 225);
+        private Color _disabledButtonForeColor = Color.FromArgb(130, 130, 130);
         private Font _pageButtonFont = new Font("Tahoma", 8F);
         private bool _styleInitialized = false;
 
@@ -429,7 +430,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 if (_btnLast.Enabled != fwd) _btnLast.Enabled = fwd;
             }
 
-            // دکمه‌های شماره صفحه
+            // دکمه‌های شماره صفحه — همه فعال (کلیک روی شماره جاری = رفرش همان صفحه)
             foreach (Control c in _pnlPageButtons.Controls)
             {
                 var btn = c as Btn;
@@ -443,18 +444,11 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                 if (int.TryParse(btn.Text, out pageNum))
                 {
                     bool isCurrent = pageNum == current;
-                    bool shouldBeEnabled = !isCurrent;
-                    if (btn.Enabled != shouldBeEnabled) btn.Enabled = shouldBeEnabled;
+                    if (!btn.Enabled) btn.Enabled = true;
                     btn.BackColor = isCurrent ? _currentPageBackColor : _pageButtonBackColor;
                     btn.ForeColor = isCurrent ? _currentPageForeColor : _pageButtonForeColor;
                     btn.Font = isCurrent ? new Font(_pageButtonFont, FontStyle.Bold) : _pageButtonFont;
-                    btn.Cursor = isCurrent ? Cursors.Default : Cursors.Hand;
-                    // رنگ دکمه صفحه جاری در حالت disabled — از DisabledBackColor/ForeColor می‌آید
-                    if (isCurrent)
-                    {
-                        btn.DisabledBackColor = _currentPageBackColor;
-                        btn.DisabledForeColor = _currentPageForeColor;
-                    }
+                    btn.Cursor = Cursors.Hand;
                 }
             }
         }
@@ -500,17 +494,12 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
                     Tag = pageNum // صفحه مقصد — در GoToPageClick استفاده می‌شود
                 };
 
+                // شماره صفحه جاری هم کلیک‌پذیر است (کلیک روی آن = رفرش همان صفحه)؛
+                // فقط حالت فعال/غیرفعال ناوبری‌های لبه را RefreshPageButtonsState مدیریت می‌کند
+                btnNum.Click += GoToPageClick;
                 if (pageNum == current)
                 {
-                    btnNum.Enabled = false;
-                    btnNum.Cursor = Cursors.Default;
                     btnNum.Font = new Font(_pageButtonFont, FontStyle.Bold);
-                    btnNum.DisabledBackColor = _currentPageBackColor;
-                    btnNum.DisabledForeColor = _currentPageForeColor;
-                }
-                else
-                {
-                    btnNum.Click += GoToPageClick;
                 }
 
                 _pnlPageButtons.Controls.Add(btnNum);
@@ -531,7 +520,14 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
             // دکمه‌های شماره صفحه — Tag عددیِ صفحه مقصد
             if (btn.Tag is int)
             {
-                GoToPage((int)btn.Tag);
+                int page = (int)btn.Tag;
+                // کلیک روی شماره صفحه جاری = رفرش همان صفحه (رویداد PageChanged دوباره صدا زده می‌شود)
+                if (page == CurrentPage)
+                {
+                    PageChanged?.Invoke(this, new PageChangedEventArgs { PageNumber = CurrentPage, PageSize = PageSize });
+                    return;
+                }
+                GoToPage(page);
                 return;
             }
 
@@ -573,6 +569,7 @@ namespace SayehBanTools.Framework.Utilities.win.component.CommonControls
 
         private void GoToPage(int page)
         {
+            // صفحه نامعتبر یا همان صفحه فعلی: کاری نکن (رفرش صفحه جاری از GoToPageClick انجام می‌شود)
             if (page < 1 || page > TotalPages || page == CurrentPage) return;
             CurrentPage = page;
             PageChanged?.Invoke(this, new PageChangedEventArgs { PageNumber = CurrentPage, PageSize = PageSize });
