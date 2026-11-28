@@ -133,14 +133,14 @@ namespace SayehBanTools.Framework.ShowDateTime
             return dt;
         }
         // متد کمکی برای جلوگیری از تکرار کدهای تبدیل تاریخ
-        public static string ConvertToPersianDateTimeUTC(DateTime dtValue)
+        public static string ConvertToPersianDateTimeUTC(DateTime dtValue,string TimeZione)
         {
             DateTime utcDate = DateTime.SpecifyKind(dtValue, DateTimeKind.Utc);
             DateTime iranTime;
 
             try
             {
-                TimeZoneInfo iranTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Iran Standard Time");
+                TimeZoneInfo iranTimeZone = TimeZoneInfo.FindSystemTimeZoneById(TimeZione);
                 iranTime = TimeZoneInfo.ConvertTimeFromUtc(utcDate, iranTimeZone);
             }
             catch
@@ -152,14 +152,14 @@ namespace SayehBanTools.Framework.ShowDateTime
             return $"{pc.GetYear(iranTime):0000}/{pc.GetMonth(iranTime):00}/{pc.GetDayOfMonth(iranTime):00} {iranTime:HH:mm:ss}";
         }
         // متد کمکی برای جلوگیری از تکرار کدهای تبدیل تاریخ
-        public static string ConvertToPersianDateUTC(DateTime dtValue)
+        public static string ConvertToPersianDateUTC(DateTime dtValue,string TimeZione)
         {
             DateTime utcDate = DateTime.SpecifyKind(dtValue, DateTimeKind.Utc);
             DateTime iranTime;
 
             try
             {
-                TimeZoneInfo iranTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Iran Standard Time");
+                TimeZoneInfo iranTimeZone = TimeZoneInfo.FindSystemTimeZoneById(TimeZione);
                 iranTime = TimeZoneInfo.ConvertTimeFromUtc(utcDate, iranTimeZone);
             }
             catch

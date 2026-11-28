@@ -25,7 +25,7 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
         // =================================================================
         // متد قدیمی (حفظ شده برای اینکه فرم‌های قبلی خطا ندهند)
         // =================================================================
-        public static void ApplyGridFormatting(DataGridView dgv, DataGridViewCellFormattingEventArgs e, Dictionary<string, int> columnsConfig, string trueValue, string falseValue)
+        public static void ApplyGridFormatting(DataGridView dgv, DataGridViewCellFormattingEventArgs e, Dictionary<string, int> columnsConfig, string trueValue, string falseValue,string TimeZione)
         {
             string colName = dgv.Columns[e.ColumnIndex].Name;
 
@@ -33,13 +33,13 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
             {
                 if (formatType == 1 && e.Value is DateTime dtValue)
                 {
-                    e.Value = ConvertDateTime.ConvertToPersianDateTimeUTC(dtValue);
+                    e.Value = ConvertDateTime.ConvertToPersianDateTimeUTC(dtValue, TimeZione);
                     e.FormattingApplied = true;
                 }
                 else if (formatType == 2 && e.Value is DateTime dtValue2)
                 {
                     // فرمت 2: فقط تاریخ (بدون ساعت)
-                    e.Value = ConvertDateTime.ConvertToPersianDateUTC(dtValue2);
+                    e.Value = ConvertDateTime.ConvertToPersianDateUTC(dtValue2, TimeZione);
                     e.FormattingApplied = true;
                 }
                 else if (formatType == 3 && e.Value is bool boolValue)
@@ -59,7 +59,7 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
         // =================================================================
         // متد جدید و پیشرفته (برای تنظیم متن اختصاصی هر ستون)
         // =================================================================
-        public static void ApplyGridFormatting(DataGridView dgv, DataGridViewCellFormattingEventArgs e, Dictionary<string, GridFormatConfig> columnsConfig)
+        public static void ApplyGridFormatting(DataGridView dgv, DataGridViewCellFormattingEventArgs e, Dictionary<string, GridFormatConfig> columnsConfig, string TimeZione)
         {
             string colName = dgv.Columns[e.ColumnIndex].Name;
 
@@ -67,13 +67,13 @@ namespace SayehBanTools.Framework.Utilities.win.Helper
             {
                 if (config.FormatType == 1 && e.Value is DateTime dtValue)
                 {
-                    e.Value = ConvertDateTime.ConvertToPersianDateTimeUTC(dtValue);
+                    e.Value = ConvertDateTime.ConvertToPersianDateTimeUTC(dtValue, TimeZione);
                     e.FormattingApplied = true;
                 }
                 else if (config.FormatType == 2 && e.Value is DateTime dtValue2)
                 {
                     // فرمت 2: فقط تاریخ (بدون ساعت)
-                    e.Value = ConvertDateTime.ConvertToPersianDateUTC(dtValue2);
+                    e.Value = ConvertDateTime.ConvertToPersianDateUTC(dtValue2, TimeZione);
                     e.FormattingApplied = true;
                 }
                 else if (config.FormatType == 3 && e.Value is bool boolValue)
